@@ -3,5 +3,9 @@
     "vendor/php-stubs/wordpress-stubs",
     ".vscode/stubs"
   ],
-  "intelephense.files.associations": ["*.php"]
+  "intelephense.files.associations": ["*.php"],
+  "intelephense.files.exclude": [
+    "**/.git/**",
+    "**/node_modules/**"
+  ]
 }
