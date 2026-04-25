@@ -76,21 +76,42 @@
                 }
             });
 
-            var startText = await startResponse.text();
+            var startText = (await startResponse.text()).trim();
 
             // admin-ajax.php returns the literal "0" when no handler is
-            // registered for the requested action. That's the signature of
-            // a missing WP-WebAuthn plugin.
-            if (startText.trim() === '0') {
+            // registered for the requested action — that's the signature
+            // of a missing WP-WebAuthn plugin.
+            if (startText === '0') {
                 throw new Error('WP-WebAuthn is not active. Install and activate it to run this test.');
+            }
+
+            // WP-WebAuthn returns "false" / "null" / "" or a non-JSON
+            // string when the requested ceremony isn't permitted —
+            // most commonly because "Usernameless Login" is disabled
+            // in the WP-WebAuthn settings.
+            if (
+                startText === '' ||
+                startText === 'false' ||
+                startText === 'null'
+            ) {
+                throw new Error(
+                    'WP-WebAuthn rejected the usernameless request. '
+                    + 'Open WP-WebAuthn settings and enable "Usernameless Login", '
+                    + 'then try again.'
+                );
             }
 
             var options;
 
             try {
                 options = JSON.parse(startText);
-            } catch (error) {
-                throw new Error('Could not parse WP-WebAuthn start response.');
+            } catch (parseError) {
+                throw new Error(
+                    'Unexpected WP-WebAuthn response: "'
+                    + startText.substring(0, 80)
+                    + '". Check the WP-WebAuthn settings — usernameless login '
+                    + 'must be enabled and at least one passkey must be registered.'
+                );
             }
 
             if (!options || typeof options !== 'object') {
@@ -98,7 +119,10 @@
             }
 
             if (!options.challenge) {
-                throw new Error('Missing passkey challenge.');
+                throw new Error(
+                    'WP-WebAuthn returned no challenge. Make sure usernameless '
+                    + 'login is enabled and at least one passkey is registered for an account on this site.'
+                );
             }
 
             options.challenge = Uint8Array.from(

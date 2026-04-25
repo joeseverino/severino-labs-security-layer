@@ -1321,9 +1321,13 @@ function sl_security_render_settings_page() {
             <p>
                 The passkey login screen delegates WebAuthn handling to the
                 <a href="https://wordpress.org/plugins/wp-webauthn/" target="_blank" rel="noopener">WP-WebAuthn</a>
-                plugin. Install and configure it first, then run a successful usernameless passkey test
-                before enabling the passkey-only login screen.
+                plugin. Before running the test below, make sure that:
             </p>
+            <ol class="sl-security-prereq-list">
+                <li>WP-WebAuthn is installed and active.</li>
+                <li>Under <em>WP-WebAuthn &rarr; Settings</em>, <strong>Usernameless Login</strong> is enabled.</li>
+                <li>At least one passkey is registered on a user account on this site (via <em>WP-WebAuthn &rarr; Authenticators</em> on the user profile).</li>
+            </ol>
 
             <table class="widefat striped sl-security-table">
                 <tbody>

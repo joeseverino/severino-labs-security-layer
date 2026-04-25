@@ -1119,6 +1119,18 @@
     margin-top: 8px;
 }
 
+.sl-security-prereq-list {
+    margin: 8px 0 16px 22px;
+    padding: 0;
+    color: #50575e;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.sl-security-prereq-list li {
+    margin-bottom: 4px;
+}
+
 #sl-test-passkey .dashicons {
     margin-right: 4px;
 }
