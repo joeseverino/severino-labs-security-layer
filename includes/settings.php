@@ -18,7 +18,8 @@ function sl_security_get_default_settings() {
         // Toggleable controls
         'enable_security_headers' => true,
         'enable_csp' => true,
-        'enable_passkey_login' => true,
+        'enable_passkey_login' => false,
+        'passkey_usernameless_verified' => false,
         'enable_fim' => true,
         'enable_fim_schedule' => true,
         'enable_sem' => true,
@@ -167,9 +168,26 @@ function sl_security_setting_enabled($key) {
     return !empty($settings[$key]);
 }
 
+function sl_security_passkey_usernameless_verified() {
+    return sl_security_setting_enabled('passkey_usernameless_verified');
+}
+
+
+function sl_security_set_passkey_usernameless_verified($verified) {
+    $settings = sl_security_get_settings();
+    $settings['passkey_usernameless_verified'] = (bool) $verified;
+    if (!$settings['passkey_usernameless_verified']) {
+        $settings['enable_passkey_login'] = false;
+    }
+    update_option('sl_security_settings', $settings, false);
+    return $settings;
+}
+
+
 function sl_security_update_settings($new_settings) {
     $defaults = sl_security_get_default_settings();
     $locked = sl_security_get_locked_settings();
+    $current_settings = sl_security_get_settings();
     $clean_settings = [];
 
     foreach ($defaults as $key => $default_value) {
@@ -178,7 +196,16 @@ function sl_security_update_settings($new_settings) {
             continue;
         }
 
+        if ($key === 'passkey_usernameless_verified') {
+            $clean_settings[$key] = !empty($current_settings[$key]);
+            continue;
+        }
+
         $clean_settings[$key] = !empty($new_settings[$key]);
+    }
+
+    if (empty($clean_settings['passkey_usernameless_verified'])) {
+        $clean_settings['enable_passkey_login'] = false;
     }
 
     update_option('sl_security_settings', $clean_settings, false);

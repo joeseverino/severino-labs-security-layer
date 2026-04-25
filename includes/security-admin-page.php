@@ -21,6 +21,11 @@ function sl_security_enqueue_admin_assets($hook) {
             SL_SECURITY_PLUGIN_VERSION,
             true
         );
+
+        wp_localize_script('sl-security-admin', 'slSecurityAdmin', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'passkeyTestNonce' => wp_create_nonce('sl_passkey_usernameless_test'),
+        ]);
     }
 }
 add_action('admin_enqueue_scripts', 'sl_security_enqueue_admin_assets');
@@ -207,6 +212,11 @@ function sl_security_handle_admin_actions() {
     if ($action === 'clear_sem_log') {
         sl_sem_clear_log();
         sl_security_redirect_with_message('sem_log_cleared', SL_SECURITY_EVENTS_SLUG);
+    }
+
+    if ($action === 'reset_passkey_usernameless_verification') {
+        sl_security_set_passkey_usernameless_verified(false);
+        sl_security_redirect_with_message('passkey_verification_reset', SL_SECURITY_SETTINGS_SLUG);
     }
 }
 add_action('admin_init', 'sl_security_handle_admin_actions');
@@ -1186,6 +1196,7 @@ function sl_security_render_settings_page() {
     $groups = sl_security_get_setting_groups();
     $branding = sl_security_get_branding_settings();
     $fim_settings = sl_security_get_fim_settings();
+    $passkey_verified = !empty($settings['passkey_usernameless_verified']);
 
     ?>
     <div class="wrap sl-security-wrap">
@@ -1279,7 +1290,35 @@ function sl_security_render_settings_page() {
                     </tr>
                 </tbody>
             </table>
+            <h2>Passkey Login Readiness</h2>
+            <p>Run a successful usernameless passkey test before enabling the passkey-only login screen.</p>
 
+            <table class="widefat striped sl-security-table">
+                <tbody>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">Usernameless Passkey Test</th>
+                        <td>
+                            <?php if ($passkey_verified) : ?>
+                                <span class="sl-security-locked-badge">Verified</span>
+                                <p class="description">A usernameless passkey authentication test has completed successfully.</p>
+
+                                <form method="post" style="margin-top: 10px;">
+                                    <?php wp_nonce_field('sl_security_action'); ?>
+                                    <input type="hidden" name="sl_security_action" value="reset_passkey_usernameless_verification">
+                                    <button type="submit" class="button button-secondary">Reset Passkey Verification</button>
+                                </form>
+                            <?php else : ?>
+                                <button type="button" id="sl-test-passkey" class="button button-secondary">
+                                    Test Usernameless Passkey
+                                </button>
+                                <span id="sl-passkey-test-status" class="description" style="display:block;margin-top:8px;">
+                                    Passkey-only login is locked until this test passes.
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             <h2>Security Controls</h2>
             <p>These settings control the behavior of the Severino Labs Security Layer. Core hardening controls are shown as locked because they define the baseline security posture of the plugin.</p>
 
@@ -1310,15 +1349,27 @@ function sl_security_render_settings_page() {
                                     <?php if ($locked) : ?>
                                         <span class="sl-security-locked-badge">Always Enabled</span>
                                     <?php else : ?>
+                                        <?php
+                                        $passkey_locked = $key === 'enable_passkey_login' && !$passkey_verified;
+                                        if ($passkey_locked) {
+                                            $enabled = false;
+                                        }
+                                        ?>
+
                                         <label>
                                             <input
                                                 type="checkbox"
                                                 name="sl_security_settings[<?php echo esc_attr($key); ?>]"
                                                 value="1"
                                                 <?php checked($enabled); ?>
+                                                <?php disabled($passkey_locked); ?>
                                             >
                                             Enabled
                                         </label>
+
+                                        <?php if ($key === 'enable_passkey_login' && !$passkey_verified) : ?>
+                                            <p class="description">Locked until the usernameless passkey test passes.</p>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
 
@@ -1657,6 +1708,7 @@ function sl_security_render_notice() {
         'baseline_deleted' => ['warning', 'Trusted baseline deleted. Create a new baseline before relying on integrity checks.'],
         'settings_saved' => ['success', 'Security layer settings saved successfully.'],
         'sem_log_cleared' => ['success', 'Security event log cleared successfully.'],
+        'passkey_verification_reset' => ['warning', 'Usernameless passkey verification was reset. Passkey-only login is disabled until the test passes again.'],
     ];
 
     if (!isset($messages[$message])) {

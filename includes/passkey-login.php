@@ -4,7 +4,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!sl_security_setting_enabled('enable_passkey_login')) {
+if (
+    !sl_security_setting_enabled('enable_passkey_login') ||
+    !sl_security_setting_enabled('passkey_usernameless_verified')
+) {
     return;
 }
 
