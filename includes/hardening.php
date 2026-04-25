@@ -22,10 +22,28 @@ if (sl_security_setting_enabled('disable_pingbacks')) {
 }
 
 /**
+ * Whether the current request is coming from a logged-in administrator.
+ *
+ * Admins legitimately need to read the user list (via Gutenberg, the user
+ * directory, profile editors, etc.) and view author archives. The REST and
+ * author-enumeration blockers below skip these requests.
+ */
+function sl_security_request_is_admin() {
+    return is_user_logged_in() && current_user_can('list_users');
+}
+
+/**
  * Block REST API user enumeration.
+ *
+ * Admin requests bypass this so the block editor and user-management screens
+ * keep working; everyone else gets 401/empty results and an event log entry.
  */
 if (sl_security_setting_enabled('block_rest_users')) {
     add_filter('rest_endpoints', function ($endpoints) {
+        if (sl_security_request_is_admin()) {
+            return $endpoints;
+        }
+
         unset($endpoints['/wp/v2/users']);
         unset($endpoints['/wp/v2/users/(?P<id>[\d]+)']);
         unset($endpoints['/wp/v2/users/me']);
@@ -34,6 +52,10 @@ if (sl_security_setting_enabled('block_rest_users')) {
     });
 
     add_action('init', function () {
+        if (sl_security_request_is_admin()) {
+            return;
+        }
+
         $request_path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
 
         if (
@@ -51,9 +73,16 @@ if (sl_security_setting_enabled('block_rest_users')) {
 
 /**
  * Block author enumeration.
+ *
+ * Admin requests bypass this so legitimate author archive previews and
+ * author-based queries from the admin area continue to work.
  */
 if (sl_security_setting_enabled('block_author_enum')) {
     add_action('template_redirect', function () {
+        if (sl_security_request_is_admin()) {
+            return;
+        }
+
         if (is_author() || (isset($_GET['author']) && is_numeric($_GET['author']))) {
             if (function_exists('sl_sem_log_event')) {
                 sl_sem_log_event('author_enumeration_blocked', [

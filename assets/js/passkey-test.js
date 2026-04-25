@@ -207,16 +207,24 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function attachHandler() {
         var button = document.getElementById('sl-test-passkey');
 
-        if (!button) {
+        if (!button || button.dataset.slPasskeyBound === '1') {
             return;
         }
 
+        button.dataset.slPasskeyBound = '1';
         button.addEventListener('click', function (event) {
             event.preventDefault();
+            event.stopPropagation();
             runUsernamelessPasskeyTest();
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachHandler);
+    } else {
+        attachHandler();
+    }
 })();

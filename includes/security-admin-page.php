@@ -5,7 +5,6 @@ if (!defined('ABSPATH')) {
 }
 
 function sl_security_enqueue_admin_assets($hook) {
-    // Enqueue on our plugin pages
     if (strpos($hook, 'sl-security') !== false) {
         wp_enqueue_style(
             'sl-security-admin',
@@ -22,13 +21,40 @@ function sl_security_enqueue_admin_assets($hook) {
             true
         );
 
-        wp_localize_script('sl-security-admin', 'slSecurityAdmin', [
+        wp_enqueue_script(
+            'sl-security-passkey-test',
+            SL_SECURITY_PLUGIN_URL . 'assets/js/passkey-test.js',
+            [],
+            SL_SECURITY_PLUGIN_VERSION,
+            true
+        );
+
+        wp_localize_script('sl-security-passkey-test', 'slSecurityAdmin', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'passkeyTestNonce' => wp_create_nonce('sl_passkey_usernameless_test'),
         ]);
     }
 }
 add_action('admin_enqueue_scripts', 'sl_security_enqueue_admin_assets');
+
+function sl_security_mark_passkey_usernameless_verified_ajax() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Unauthorized.'], 403);
+    }
+
+    check_ajax_referer('sl_passkey_usernameless_test', 'nonce');
+
+    if (!function_exists('sl_security_set_passkey_usernameless_verified')) {
+        wp_send_json_error(['message' => 'Passkey verification settings handler is unavailable.'], 500);
+    }
+
+    sl_security_set_passkey_usernameless_verified(true);
+
+    wp_send_json_success([
+        'message' => 'Usernameless passkey authentication verified.',
+    ]);
+}
+add_action('wp_ajax_sl_mark_passkey_usernameless_verified', 'sl_security_mark_passkey_usernameless_verified_ajax');
 
 function sl_security_add_plugin_action_links($links) {
     $dashboard_link = '<a href="' . esc_url(admin_url('admin.php?page=' . SL_SECURITY_MENU_SLUG)) . '">Dashboard</a>';
@@ -1299,19 +1325,15 @@ function sl_security_render_settings_page() {
                         <th scope="row" class="sl-security-settings-label">Usernameless Passkey Test</th>
                         <td>
                             <?php if ($passkey_verified) : ?>
-                                <span class="sl-security-locked-badge">Verified</span>
+                                <span class="sl-security-status-badge sl-security-status-enabled">
+                                    <span class="dashicons dashicons-yes-alt"></span> Verified
+                                </span>
                                 <p class="description">A usernameless passkey authentication test has completed successfully.</p>
-
-                                <form method="post" style="margin-top: 10px;">
-                                    <?php wp_nonce_field('sl_security_action'); ?>
-                                    <input type="hidden" name="sl_security_action" value="reset_passkey_usernameless_verification">
-                                    <button type="submit" class="button button-secondary">Reset Passkey Verification</button>
-                                </form>
                             <?php else : ?>
                                 <button type="button" id="sl-test-passkey" class="button button-secondary">
-                                    Test Usernameless Passkey
+                                    <span class="dashicons dashicons-shield-alt"></span> Test Usernameless Passkey
                                 </button>
-                                <span id="sl-passkey-test-status" class="description" style="display:block;margin-top:8px;">
+                                <span id="sl-passkey-test-status" class="description sl-security-passkey-test-status">
                                     Passkey-only login is locked until this test passes.
                                 </span>
                             <?php endif; ?>
@@ -1346,31 +1368,54 @@ function sl_security_render_settings_page() {
                                 </td>
 
                                 <td>
-                                    <?php if ($locked) : ?>
-                                        <span class="sl-security-locked-badge">Always Enabled</span>
-                                    <?php else : ?>
-                                        <?php
-                                        $passkey_locked = $key === 'enable_passkey_login' && !$passkey_verified;
-                                        if ($passkey_locked) {
-                                            $enabled = false;
-                                        }
-                                        ?>
+                                    <?php
+                                    $passkey_locked = $key === 'enable_passkey_login' && !$passkey_verified;
+                                    if ($passkey_locked) {
+                                        $enabled = false;
+                                    }
 
-                                        <label>
-                                            <input
-                                                type="checkbox"
-                                                name="sl_security_settings[<?php echo esc_attr($key); ?>]"
-                                                value="1"
-                                                <?php checked($enabled); ?>
-                                                <?php disabled($passkey_locked); ?>
-                                            >
-                                            Enabled
-                                        </label>
+                                    if ($locked) {
+                                        $badge_class = 'sl-security-status-locked';
+                                        $badge_icon = 'dashicons-lock';
+                                        $badge_label = 'Always Enabled';
+                                    } elseif ($passkey_locked) {
+                                        $badge_class = 'sl-security-status-locked';
+                                        $badge_icon = 'dashicons-lock';
+                                        $badge_label = 'Locked';
+                                    } elseif ($enabled) {
+                                        $badge_class = 'sl-security-status-enabled';
+                                        $badge_icon = 'dashicons-yes-alt';
+                                        $badge_label = 'Enabled';
+                                    } else {
+                                        $badge_class = 'sl-security-status-disabled';
+                                        $badge_icon = 'dashicons-marker';
+                                        $badge_label = 'Disabled';
+                                    }
+                                    ?>
 
-                                        <?php if ($key === 'enable_passkey_login' && !$passkey_verified) : ?>
+                                    <div class="sl-security-status-cell">
+                                        <span class="sl-security-status-badge <?php echo esc_attr($badge_class); ?>">
+                                            <span class="dashicons <?php echo esc_attr($badge_icon); ?>"></span>
+                                            <?php echo esc_html($badge_label); ?>
+                                        </span>
+
+                                        <?php if (!$locked) : ?>
+                                            <label class="sl-security-status-toggle">
+                                                <input
+                                                    type="checkbox"
+                                                    name="sl_security_settings[<?php echo esc_attr($key); ?>]"
+                                                    value="1"
+                                                    <?php checked($enabled); ?>
+                                                    <?php disabled($passkey_locked); ?>
+                                                >
+                                                <?php echo $enabled ? 'Disable' : 'Enable'; ?>
+                                            </label>
+                                        <?php endif; ?>
+
+                                        <?php if ($passkey_locked) : ?>
                                             <p class="description">Locked until the usernameless passkey test passes.</p>
                                         <?php endif; ?>
-                                    <?php endif; ?>
+                                    </div>
                                 </td>
 
                                 <td>
@@ -1384,6 +1429,17 @@ function sl_security_render_settings_page() {
 
             <?php submit_button('Save All Settings'); ?>
         </form>
+
+        <?php if ($passkey_verified) : ?>
+            <form method="post" class="sl-security-reset-passkey-form">
+                <?php wp_nonce_field('sl_security_action'); ?>
+                <input type="hidden" name="sl_security_action" value="reset_passkey_usernameless_verification">
+                <button type="submit" class="button button-secondary">
+                    <span class="dashicons dashicons-image-rotate"></span> Reset Passkey Verification
+                </button>
+                <span class="description">Run the test again before re-enabling passkey-only login.</span>
+            </form>
+        <?php endif; ?>
     </div>
     <?php
 }
