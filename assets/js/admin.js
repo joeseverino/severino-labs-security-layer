@@ -1,16 +1,8 @@
 // Severino Labs Security Layer Admin JavaScript
-
-function slSecurityToggleTable(toggleElement) {
-    const tableContent = toggleElement.nextElementSibling;
-
-    if (!tableContent) {
-        return;
-    }
-
-    const isExpanded = tableContent.classList.toggle('expanded');
-    toggleElement.classList.toggle('expanded');
-    toggleElement.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-}
+//
+// Note: expandable tables (Score breakdown, Monitored Target Groups,
+// Excluded Paths) use the native <details>/<summary> element and need
+// no JS — the browser handles open/close.
 
 function slSecurityToggleEventDetails(row) {
     const detailRow = row.nextElementSibling;
@@ -23,13 +15,8 @@ function slSecurityToggleEventDetails(row) {
     row.setAttribute('aria-expanded', isActive ? 'true' : 'false');
 }
 
-// Initialize expandable tables on page load
-jQuery(document).ready(function($) {
-    $('.sl-security-table-toggle').on('click', function() {
-        slSecurityToggleTable(this);
-    });
-
-    $('.sl-security-event-summary').on('click keypress', function(event) {
+jQuery(document).ready(function ($) {
+    $('.sl-security-event-summary').on('click keypress', function (event) {
         if (event.type === 'keypress' && event.key !== 'Enter' && event.key !== ' ') {
             return;
         }

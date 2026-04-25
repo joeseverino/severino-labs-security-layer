@@ -657,7 +657,7 @@ function sl_security_render_dashboard_page() {
                         </thead>
                         <tbody>
                             <?php foreach ($recent_events as $event) : ?>
-                                <tr class="sl-security-event-row" data-details='<?php echo esc_attr(json_encode($event)); ?>'>
+                                <tr>
                                     <td><?php echo esc_html($event['timestamp'] ?? ''); ?></td>
                                     <td><span class="sl-security-event-type"><?php echo esc_html($event['event_type'] ?? ''); ?></span></td>
                                     <td><?php echo esc_html(substr($event['uri'] ?? '', 0, 50) . (strlen($event['uri'] ?? '') > 50 ? '...' : '')); ?></td>
@@ -1546,28 +1546,29 @@ function sl_security_render_target_groups() {
             </summary>
             <div class="sl-security-table-content">
                 <table class="widefat striped sl-security-config-table">
-                <thead>
-                    <tr>
-                        <th>Group</th>
-                        <th>Files/Paths</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($groups as $group_name => $targets) : ?>
+                    <thead>
                         <tr>
-                            <td><strong><?php echo esc_html($group_name); ?></strong></td>
-                            <td>
-                                <ul class="sl-security-target-list">
-                                    <?php foreach ($targets as $target) : ?>
-                                        <li><code><?php echo esc_html($target); ?></code></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </td>
+                            <th>Group</th>
+                            <th>Files/Paths</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($groups as $group_name => $targets) : ?>
+                            <tr>
+                                <td><strong><?php echo esc_html($group_name); ?></strong></td>
+                                <td>
+                                    <ul class="sl-security-target-list">
+                                        <?php foreach ($targets as $target) : ?>
+                                            <li><code><?php echo esc_html($target); ?></code></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </details>
     </div>
     <?php
 }
@@ -1595,45 +1596,46 @@ function sl_security_render_excluded_paths() {
             </summary>
             <div class="sl-security-table-content">
                 <table class="widefat striped sl-security-config-table">
-                <thead>
-                    <tr>
-                        <th>Path</th>
-                        <th>Purpose</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $path_descriptions = [
-                        'wp-content/uploads' => 'User uploads directory',
-                        'wp-content/cache' => 'Cache files',
-                        'wp-content/logs' => 'Log files',
-                        'wp-content/backups' => 'Backup files',
-                        'wp-content/temp' => 'Temporary files',
-                        'wp-content/debug.log' => 'WordPress debug log',
-                        'wp-content/litespeed' => 'LiteSpeed cache',
-                        '.git' => 'Git repository',
-                        'node_modules' => 'Node.js dependencies',
-                        'vendor' => 'Composer dependencies',
-                        'data' => 'Plugin data directory',
-                    ];
-
-                    foreach ($excluded_paths as $path) :
-                        $description = 'Excluded path';
-                        foreach ($path_descriptions as $key => $desc) {
-                            if (strpos($path, $key) !== false) {
-                                $description = $desc;
-                                break;
-                            }
-                        }
-                    ?>
+                    <thead>
                         <tr>
-                            <td><code><?php echo esc_html($path); ?></code></td>
-                            <td><?php echo esc_html($description); ?></td>
+                            <th>Path</th>
+                            <th>Purpose</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $path_descriptions = [
+                            'wp-content/uploads' => 'User uploads directory',
+                            'wp-content/cache' => 'Cache files',
+                            'wp-content/logs' => 'Log files',
+                            'wp-content/backups' => 'Backup files',
+                            'wp-content/temp' => 'Temporary files',
+                            'wp-content/debug.log' => 'WordPress debug log',
+                            'wp-content/litespeed' => 'LiteSpeed cache',
+                            '.git' => 'Git repository',
+                            'node_modules' => 'Node.js dependencies',
+                            'vendor' => 'Composer dependencies',
+                            'data' => 'Plugin data directory',
+                        ];
+
+                        foreach ($excluded_paths as $path) :
+                            $description = 'Excluded path';
+                            foreach ($path_descriptions as $key => $desc) {
+                                if (strpos($path, $key) !== false) {
+                                    $description = $desc;
+                                    break;
+                                }
+                            }
+                        ?>
+                            <tr>
+                                <td><code><?php echo esc_html($path); ?></code></td>
+                                <td><?php echo esc_html($description); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </details>
     </div>
     <?php
 }

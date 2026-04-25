@@ -98,22 +98,24 @@ For support and feature requests, please visit the [GitHub repository](https://g
 
 ## Changelog
 
-### Version 5.1.4
-- Score breakdown is collapsible again (fixed `<details>` selector mismatch)
-- Every status card across Dashboard, File Integrity, and Security Events now uses the same icon-tagged layout
-- Split the Dashboard's recommendation block into two sections: "Action Required" (high/medium priority) and "Recommendations" (optional improvements) so each label is honest
-- Consolidated the dashboard metrics grid onto the shared status-cards class — one grid system across the plugin
-- Removed unused `render_controls_summary`, `get_recommendation_section_title`, and the `render_metric_card` shim
-- Extracted recommendation rendering into a single reusable helper
+### Version 6.0.0 — first public release
 
-### Version 5.1.3
-- Unified the Dashboard, File Integrity, and Security Events pages around a single status-card style for a seamless cross-page look
-- Refined the security-score donut: smaller percentage, tighter circle, better-balanced label
-- Rebuilt the score breakdown rows with consistent label/description/value alignment
-- Added a Country column to the Dashboard's Recent Security Activity table
-- Added a parallel intro paragraph above Monitored Target Groups so it lines up with Excluded Paths
-- Brought the Security Events page in line with the rest of the admin (page header, sectioned layout, icon-tagged status cards)
-- Removed dead CSS rules and migrated all inline styles to dedicated classes (only dynamic color/gradient values stay inline)
+**Admin UI overhaul**
+- Unified Dashboard, File Integrity, and Security Events around a single status-card system: every card on every page shares the same shape, typography, and icon treatment
+- Refined the security-score donut: smaller percentage, tighter circle, balanced "SECURITY SCORE" label
+- Rebuilt the score breakdown rows with consistent label / description / value alignment, and made the collapsible toggle actually work (was previously broken by a CSS selector mismatch)
+- Split the Dashboard's recommendations into two honest sections: **Action Required** (high/medium priority) with a warning icon, and **Recommendations** (optional improvements) with a lightbulb icon
+- Added a Country column to the Dashboard's Recent Security Activity, matching the Events page
+- Brought the Security Events page in line with the rest of the admin: shared page header, sectioned layout, icon-tagged status cards
+- Added a parallel intro paragraph above Monitored Target Groups so the FIM Configuration columns line up
+
+**Code quality**
+- Removed every non-dynamic inline style; only the conic-gradient on the score donut and the per-card accent border remain inline (both depend on runtime data)
+- Removed unused PHP functions (`render_controls_summary`, `get_recommendation_section_title`, the `render_metric_card` shim)
+- Removed dead JS (`slSecurityToggleTable`) and the unused `data-details` JSON blobs on dashboard rows
+- Removed orphan CSS rules and verified zero unused classes remain
+- Fixed missing `</details>` closes in the FIM Configuration tables
+- Extracted recommendation rendering into a single reusable helper
 
 ### Version 5.1.2
 - Complete dashboard redesign with security scoring

@@ -419,6 +419,10 @@
     margin-bottom: 15px;
 }
 
+.sl-security-activity-footer {
+    margin-top: 12px;
+}
+
 .sl-security-activity-table table,
 .sl-security-table-expandable {
     margin: 0;
