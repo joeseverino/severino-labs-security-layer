@@ -275,11 +275,11 @@ function sl_security_render_score_breakdown(array $breakdown) {
 
     foreach ($breakdown as $item) {
         printf(
-            '<li class="%s"><div class="sl-security-score-breakdown-label">%s</div><div class="sl-security-score-breakdown-meta"><span class="sl-security-score-breakdown-value">%s pts</span><span class="sl-security-score-breakdown-note">%s</span></div></li>',
+            '<li class="%s"><div class="sl-security-score-breakdown-info"><span class="sl-security-score-breakdown-label">%s</span><span class="sl-security-score-breakdown-note">%s</span></div><span class="sl-security-score-breakdown-value">%s pts</span></li>',
             esc_attr($item['active'] ? 'active' : 'inactive'),
             esc_html($item['label']),
-            esc_html($item['value']),
-            esc_html($item['description'])
+            esc_html($item['description']),
+            esc_html($item['value'])
         );
     }
 
@@ -1377,10 +1377,15 @@ function sl_security_render_last_result_banner($status, $baseline_exists, $fim_e
     echo '<div class="notice notice-warning"><p><strong>Status:</strong> ' . esc_html($status['message'] ?? 'Review file integrity status.') . '</p></div>';
 }
 
-function sl_security_render_status_card($title, $value, $description, $accent_color) {
+function sl_security_render_status_card($title, $value, $description, $accent_color, $icon = '') {
     ?>
     <div class="sl-security-status-card" style="border-left-color: <?php echo esc_attr($accent_color); ?>;">
-        <h3><?php echo esc_html($title); ?></h3>
+        <h3>
+            <?php if (!empty($icon)) : ?>
+                <span class="dashicons <?php echo esc_attr($icon); ?>"></span>
+            <?php endif; ?>
+            <span><?php echo esc_html($title); ?></span>
+        </h3>
         <div class="sl-security-status-value"><?php echo esc_html($value); ?></div>
         <p class="sl-security-status-desc"><?php echo esc_html($description); ?></p>
     </div>
@@ -1388,16 +1393,7 @@ function sl_security_render_status_card($title, $value, $description, $accent_co
 }
 
 function sl_security_render_metric_card($title, $value, $description, $accent_color, $icon) {
-    ?>
-    <div class="sl-security-metric-card" style="border-left-color: <?php echo esc_attr($accent_color); ?>;">
-        <div class="sl-security-metric-header">
-            <span class="dashicons <?php echo esc_attr($icon); ?>"></span>
-            <h4><?php echo esc_html($title); ?></h4>
-        </div>
-        <div class="sl-security-metric-value"><?php echo esc_html($value); ?></div>
-        <p class="sl-security-metric-desc"><?php echo esc_html($description); ?></p>
-    </div>
-    <?php
+    sl_security_render_status_card($title, $value, $description, $accent_color, $icon);
 }
 
 function sl_security_get_last_check_label($status) {
