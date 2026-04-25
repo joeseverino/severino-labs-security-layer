@@ -1,82 +1,137 @@
 # Severino Labs Security Layer
 
-A comprehensive WordPress security plugin that provides enterprise-grade protection through hardening, file integrity monitoring, security event logging, and passkey authentication.
+A custom WordPress security plugin that centralizes application hardening, browser-facing security controls, file integrity monitoring, security event logging, and passkey-first login customization for my personal WordPress environment.
+
+This project was built to reduce default WordPress exposure, improve visibility into security-relevant events, and keep site-specific hardening logic in one maintainable plugin instead of scattered snippets, theme edits, or unrelated third-party tools.
 
 ## Features
 
-### 🔒 Security Hardening
-- XML-RPC protection
-- Pingbacks blocking
-- REST API user enumeration prevention
-- Author enumeration blocking
+### 🔒 Application Hardening
+
+- XML-RPC disablement
+- Pingback method blocking
+- REST API user enumeration reduction
+- Author archive enumeration blocking
 - WordPress generator tag removal
-- Unused endpoints blocking
-- Custom error pages
+- Unused endpoint reduction
+- Custom security error page support
 
-### 📁 File Integrity Monitoring (FIM)
+### 🌐 Browser-Facing Security Controls
+
+- Configurable security headers
+- Content Security Policy support
+- Framing and MIME-sniffing protections
+- Referrer policy support
+- Permissions policy support
+
+### 📁 File Integrity Monitoring
+
 - SHA-256 baseline creation
-- Automated integrity checks
-- Configurable file monitoring targets
-- Excluded paths management
-- Real-time change detection
-- Scheduled daily scans
+- Manual integrity checks
+- Scheduled daily checks
+- Configurable monitored targets
+- Excluded path management
+- Added, removed, and modified file detection
+- File integrity status reporting in the WordPress admin
 
-### 🛡️ Security Event Monitoring (SEM)
-- Request logging and analysis
-- Blocked attack detection
-- IP-based threat tracking
+### 🛡️ Security Event Monitoring
+
+- Security-relevant request logging
 - Event type categorization
-- Historical event storage
+- Source IP and request metadata capture
+- Cloudflare metadata support where available
+- Recent event display in the admin dashboard
+- Historical event log viewer
 
-### 🔐 Passkey Authentication
-- Custom login page design
+### 🔐 Passkey-First Login Customization
+
+- Custom WordPress login page design
+- Passkey-first login interface
 - Configurable branding
-- Enhanced security UI
 - Logo and label customization
+- Designed to work alongside a compatible WebAuthn/passkey plugin
+
+## Scope and Limitations
+
+This plugin is a focused hardening and monitoring layer, not a complete replacement for a WAF, malware scanner, backup system, or host-level firewall.
+
+It does not:
+
+- Provide malware signature scanning
+- Replace Cloudflare, server firewall rules, or hosting-level controls
+- Guarantee origin server lockdown
+- Implement WebAuthn/passkey authentication by itself
+- Replace regular WordPress, plugin, theme, and server updates
+
+The passkey-first login functionality is designed around login customization and integration with a compatible WebAuthn/passkey setup.
 
 ## Installation
 
-1. Download the plugin files
-2. Upload to your `/wp-content/plugins/` directory
-3. Activate "Severino Labs Security Layer" through the WordPress admin
-4. Configure settings in **Severino Security → Settings**
+1. Download or clone the plugin files.
+2. Upload the plugin folder to `/wp-content/plugins/`.
+3. Activate **Severino Labs Security Layer** through the WordPress admin.
+4. Configure settings under **Severino Security → Settings**.
+5. Create a file integrity baseline after confirming the current file state is expected.
 
 ## Configuration
 
 ### Security Controls
-Enable/disable individual security features based on your needs:
-- Core hardening controls (recommended to keep enabled)
-- Optional features like CSP headers and passkey login
+
+Individual controls can be enabled or disabled from the plugin settings page. Core hardening controls are intended to reduce unnecessary WordPress exposure while keeping behavior explicit and reviewable.
 
 ### Branding Configuration
-Customize the passkey login experience:
-- Upload custom logo
-- Set site display name
-- Personalize the authentication flow
+
+The login experience can be customized with:
+
+- Custom logo
+- Site display name
+- Login page label text
+- Passkey-first authentication flow styling
 
 ### File Integrity Monitoring
-Configure what files to monitor:
-- **Monitored Targets**: Add paths to critical files/directories
-- **Excluded Paths**: Define paths to ignore (logs, caches, uploads)
+
+File Integrity Monitoring can be configured with:
+
+- **Monitored Targets**: files or directories to include in integrity checks
+- **Excluded Paths**: logs, caches, uploads, or temporary directories to ignore
+- **Baseline Creation**: a trusted snapshot of the approved file state
+- **Scheduled Checks**: daily WordPress cron-based integrity checks
 
 ## Dashboard
 
 The admin dashboard provides:
-- **Security Score**: Overall health indicator (0-100%)
-- **Status Overview**: FIM automation, event monitoring, baseline status
-- **Quick Actions**: Run checks, create baselines, access reports
-- **Recent Events**: Latest security activity
-- **System Information**: Plugin and environment details
+
+- **Security Score**: simple health indicator based on enabled controls and monitoring status
+- **Status Overview**: FIM automation, event monitoring, and baseline status
+- **Quick Actions**: run checks, create baselines, and access reports
+- **Recent Events**: latest security-relevant activity
+- **System Information**: plugin, WordPress, and PHP version details
 
 ## Security Score Calculation
 
-The security score is calculated based on:
+The security score is calculated using the plugin’s enabled controls and monitoring state:
+
 - Plugin active: +20 points
 - FIM enabled: +25 points
 - Baseline created: +15 points
 - FIM check passed: +10 points
 - SEM enabled: +20 points
 - No events today: +10 points
+
+The score is a local status indicator for this plugin. It is not a full security rating for the entire WordPress environment.
+
+## Development Workflow
+
+This plugin is maintained in a private GitHub repository and deployed to the live WordPress environment through a Git-based workflow.
+
+The general workflow is:
+
+1. Make changes locally.
+2. Review the diff.
+3. Commit and push to GitHub.
+4. Pull the latest version on the hosting server.
+
+This keeps the live plugin version-controlled and provides a rollback history for future maintenance.
 
 ## Requirements
 
@@ -86,69 +141,69 @@ The security score is calculated based on:
 
 ## Security Best Practices
 
-1. **Keep core hardening enabled** - These are baseline protections
-2. **Create FIM baseline** after initial setup and after major updates
-3. **Monitor security events** regularly for suspicious activity
-4. **Configure exclusions** for cache directories and temporary files
-5. **Enable scheduled checks** for automated monitoring
-
-## Support
-
-For support and feature requests, please visit the [GitHub repository](https://github.com/yourusername/severino-labs-security-layer).
+1. Keep core hardening controls enabled unless a specific feature needs to be exposed.
+2. Create a new FIM baseline after trusted plugin, theme, or WordPress updates.
+3. Review security events regularly for repeated or suspicious activity.
+4. Exclude cache, upload, log, and temporary directories from FIM targets.
+5. Use scheduled checks for ongoing file integrity monitoring.
+6. Keep WordPress core, themes, plugins, PHP, and hosting controls updated.
 
 ## Changelog
 
-### Version 6.0.0 — first public release
+### Version 6.0.0 — Public repository preparation
 
 **Admin UI overhaul**
-- Unified Dashboard, File Integrity, and Security Events around a single status-card system: every card on every page shares the same shape, typography, and icon treatment
-- Refined the security-score donut: smaller percentage, tighter circle, balanced "SECURITY SCORE" label
-- Rebuilt the score breakdown rows with consistent label / description / value alignment, and made the collapsible toggle actually work (was previously broken by a CSS selector mismatch)
-- Split the Dashboard's recommendations into two honest sections: **Action Required** (high/medium priority) with a warning icon, and **Recommendations** (optional improvements) with a lightbulb icon
-- Added a Country column to the Dashboard's Recent Security Activity, matching the Events page
-- Brought the Security Events page in line with the rest of the admin: shared page header, sectioned layout, icon-tagged status cards
-- Added a parallel intro paragraph above Monitored Target Groups so the FIM Configuration columns line up
+
+- Unified Dashboard, File Integrity, and Security Events around a single status-card system.
+- Refined the security-score donut with improved sizing and label balance.
+- Rebuilt score breakdown rows with consistent label, description, and value alignment.
+- Fixed the collapsible score breakdown toggle.
+- Split dashboard recommendations into **Action Required** and **Recommendations** sections.
+- Added a Country column to Dashboard Recent Security Activity.
+- Updated the Security Events page to match the shared admin layout.
+- Added a parallel intro paragraph above Monitored Target Groups so the FIM configuration columns align cleanly.
 
 **Code quality**
-- Removed every non-dynamic inline style; only the conic-gradient on the score donut and the per-card accent border remain inline (both depend on runtime data)
-- Removed unused PHP functions (`render_controls_summary`, `get_recommendation_section_title`, the `render_metric_card` shim)
-- Removed dead JS (`slSecurityToggleTable`) and the unused `data-details` JSON blobs on dashboard rows
-- Removed orphan CSS rules and verified zero unused classes remain
-- Fixed missing `</details>` closes in the FIM Configuration tables
-- Extracted recommendation rendering into a single reusable helper
+
+- Removed non-dynamic inline styles except runtime-dependent score and card accent styling.
+- Removed unused PHP functions.
+- Removed dead JavaScript and unused dashboard row JSON blobs.
+- Removed orphan CSS rules.
+- Fixed missing `</details>` closes in FIM configuration tables.
+- Extracted recommendation rendering into a reusable helper.
 
 ### Version 5.1.2
-- Complete dashboard redesign with security scoring
-- Modular settings configuration
-- Enhanced UI with professional styling
-- Configurable branding and FIM targets
-- Improved responsive design
+
+- Complete dashboard redesign with security scoring.
+- Modular settings configuration.
+- Enhanced admin UI styling.
+- Configurable branding and FIM targets.
+- Improved responsive design.
 
 ### Version 5.1.1
-- Added modular constants and settings system
-- Implemented configurable FIM targets and exclusions
-- Enhanced passkey login with branding support
+
+- Added modular constants and settings system.
+- Implemented configurable FIM targets and exclusions.
+- Enhanced passkey login customization with branding support.
 
 ### Version 5.1.0
-- Initial release with core security features
-- File integrity monitoring
-- Security event logging
-- Passkey authentication
+
+- Initial internal release with core hardening features.
+- Added file integrity monitoring.
+- Added security event logging.
+- Added passkey-first login customization.
 
 ## License
 
 This plugin is licensed under the GPL v2 or later.
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues on GitHub.
-
 ## Author
 
 **Joe Severino**
+
 - Website: [jseverino.com](https://jseverino.com)
 - GitHub: [@joeseverino](https://github.com/joeseverino)
 
 ---
 
-*WordPress security made simple.*
+*Built as a focused WordPress hardening and monitoring layer for a personal production site.*
