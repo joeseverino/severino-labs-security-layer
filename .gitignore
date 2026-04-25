@@ -1,0 +1,19 @@
+# Runtime security data
+data/*.log
+data/*.json
+includes/error_log
+**/error_log
+
+# Archives / review exports
+*.zip
+*.tar
+*.gz
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.swp
