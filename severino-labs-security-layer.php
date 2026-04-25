@@ -4,7 +4,9 @@
  * Description: Custom security layer for WordPress that centralizes application hardening, browser-enforced policies, file integrity monitoring, security event logging, and a passkey-only login experience.
  * Author: Joe Severino
  * Author URI: https://jseverino.com
- * Version: 6.0.0
+ * Version: 6.0.1
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if (!defined('ABSPATH')) {

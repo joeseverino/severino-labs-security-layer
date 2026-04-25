@@ -147,8 +147,8 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 **Joe Severino**
 - Website: [jseverino.com](https://jseverino.com)
-- GitHub: [@yourusername](https://github.com/yourusername)
+- GitHub: [@joeseverino](https://github.com/joeseverino)
 
 ---
 
-*Enterprise-grade WordPress security made simple.*
+*WordPress security made simple.*
