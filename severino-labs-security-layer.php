@@ -4,7 +4,7 @@
  * Description: Custom security layer for WordPress that centralizes application hardening, browser-enforced policies, file integrity monitoring, security event logging, and a passkey-only login experience.
  * Author: Joe Severino
  * Author URI: https://jseverino.com
- * Version: 5.1.2
+ * Version: 5.1.3
  */
 
 if (!defined('ABSPATH')) {
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
 define('SL_SECURITY_PLUGIN_FILE', __FILE__);
 define('SL_SECURITY_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('SL_SECURITY_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('SL_SECURITY_PLUGIN_VERSION', '5.1.2');
+define('SL_SECURITY_PLUGIN_VERSION', '5.1.3');
 define('SL_SECURITY_BRAND_NAME', 'Severino Labs Security Layer');
 define('SL_SECURITY_CAPABILITY', 'manage_options');
 define('SL_SECURITY_MENU_SLUG', 'sl-security');

@@ -253,21 +253,7 @@
     line-height: 1.4;
 }
 
-/* Quick Actions */
-.sl-security-quick-actions {
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 30px 0;
-}
-
-.sl-security-quick-actions h3 {
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
+/* Action buttons & forms */
 .sl-security-action-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -282,43 +268,7 @@
     display: inline-block;
 }
 
-/* Recent Activity */
-.sl-security-recent-activity {
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 30px 0;
-}
-
-.sl-security-recent-activity h3 {
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.sl-security-events-list {
-    margin-bottom: 15px;
-}
-
-.sl-security-event-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.sl-security-event-item:last-child {
-    border-bottom: none;
-}
-
-.sl-security-event-time {
-    font-size: 12px;
-    color: #646970;
-    font-weight: 500;
-}
-
+/* Event type pill (used in dashboard recent activity) */
 .sl-security-event-type {
     font-size: 13px;
     font-weight: 600;
@@ -326,56 +276,6 @@
     background: #fef2f2;
     padding: 2px 6px;
     border-radius: 3px;
-}
-
-.sl-security-event-details {
-    flex: 1;
-    font-size: 13px;
-    color: #1d2327;
-    margin: 0 15px;
-    font-family: monospace;
-    word-break: break-all;
-}
-
-.sl-security-event-ip {
-    font-size: 12px;
-    color: #646970;
-    font-family: monospace;
-}
-
-/* System Info */
-.sl-security-system-info {
-    background: #f8f9fa;
-    border: 1px solid #dcdcde;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 30px 0;
-}
-
-.sl-security-system-info h3 {
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.sl-security-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-}
-
-.sl-security-info-item {
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-.sl-security-info-item strong {
-    color: #1d2327;
-}
-
-/* Legacy styles for compatibility */
-.sl-security-actions {
-    margin: 20px 0;
 }
 
 /* Dashboard Grid Layout */
@@ -860,7 +760,7 @@
 .sl-security-config-section {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
 }
 
 .sl-security-config-section h3 {
@@ -868,6 +768,38 @@
     font-size: 16px;
     font-weight: 600;
     color: #1d2327;
+}
+
+.sl-security-config-description {
+    margin: 0;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.sl-security-config-table th,
+.sl-security-config-table td {
+    vertical-align: top;
+    font-size: 13px;
+}
+
+.sl-security-config-table td code {
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.sl-security-target-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+}
+
+.sl-security-target-list li {
+    margin-bottom: 4px;
+}
+
+.sl-security-target-list li:last-child {
+    margin-bottom: 0;
 }
 
 /* Log Container */
@@ -958,22 +890,6 @@
 .sl-security-table-toggle span:first-child {
     flex: 1;
     min-width: 0;
-}
-
-.sl-security-table-content {
-    display: none;
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.sl-security-table-content.expanded {
-    display: block;
-}
-
-.sl-security-table-content table {
-    margin: 0;
-    border: none;
 }
 
 /* Responsive FIM Page */
@@ -1080,13 +996,65 @@
         text-align: center;
     }
 
-    .sl-security-event-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
+}
 
-    .sl-security-info-grid {
-        grid-template-columns: 1fr;
-    }
+/* Settings page */
+.sl-security-settings-label {
+    width: 200px;
+}
+
+.sl-security-controls-table .sl-security-controls-col-control {
+    width: 280px;
+}
+
+.sl-security-controls-table .sl-security-controls-col-status {
+    width: 160px;
+}
+
+.sl-security-locked-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #e7f5ea;
+    color: #008a20;
+    border: 1px solid #b8e6c1;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Inline action form (used in recommendation buttons) */
+.sl-security-action-form-inline {
+    display: inline;
+}
+
+/* Change Summary table */
+.sl-security-change-summary-table {
+    max-width: 1200px;
+}
+
+.sl-security-change-empty {
+    color: #646970;
+    font-style: italic;
+}
+
+.sl-security-change-files {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.sl-security-change-files li {
+    margin-bottom: 3px;
+}
+
+.sl-security-change-files li:last-child {
+    margin-bottom: 0;
+}
+
+/* Danger zone copy */
+.sl-security-danger-zone-note {
+    max-width: 900px;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0 0 15px 0;
 }

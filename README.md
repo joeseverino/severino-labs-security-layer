@@ -98,6 +98,15 @@ For support and feature requests, please visit the [GitHub repository](https://g
 
 ## Changelog
 
+### Version 5.1.3
+- Unified the Dashboard, File Integrity, and Security Events pages around a single status-card style for a seamless cross-page look
+- Refined the security-score donut: smaller percentage, tighter circle, better-balanced label
+- Rebuilt the score breakdown rows with consistent label/description/value alignment
+- Added a Country column to the Dashboard's Recent Security Activity table
+- Added a parallel intro paragraph above Monitored Target Groups so it lines up with Excluded Paths
+- Brought the Security Events page in line with the rest of the admin (page header, sectioned layout, icon-tagged status cards)
+- Removed dead CSS rules and migrated all inline styles to dedicated classes (only dynamic color/gradient values stay inline)
+
 ### Version 5.1.2
 - Complete dashboard redesign with security scoring
 - Modular settings configuration

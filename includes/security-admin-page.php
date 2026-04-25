@@ -419,7 +419,7 @@ function sl_security_get_recommendations($fim_enabled, $sem_enabled, $baseline_e
             'icon' => 'dashicons-database-add',
             'title' => 'Create File Baseline',
             'description' => 'Create a baseline of your current file state to monitor for future changes.',
-            'action' => '<form method="post" class="sl-security-action-form" style="display: inline;">
+            'action' => '<form method="post" class="sl-security-action-form sl-security-action-form-inline">
                 ' . wp_nonce_field('sl_security_action', '_wpnonce', true, false) . '
                 <input type="hidden" name="sl_security_action" value="create_baseline">
                 <button type="submit" class="button button-primary">Create Baseline</button>
@@ -434,7 +434,7 @@ function sl_security_get_recommendations($fim_enabled, $sem_enabled, $baseline_e
             'icon' => 'dashicons-search',
             'title' => 'Run Integrity Check',
             'description' => 'Run a manual integrity check to verify your files are secure.',
-            'action' => '<form method="post" class="sl-security-action-form" style="display: inline;">
+            'action' => '<form method="post" class="sl-security-action-form sl-security-action-form-inline">
                 ' . wp_nonce_field('sl_security_action', '_wpnonce', true, false) . '
                 <input type="hidden" name="sl_security_action" value="run_check">
                 <input type="hidden" name="sl_return_page" value="' . SL_SECURITY_MENU_SLUG . '">
@@ -639,6 +639,7 @@ function sl_security_render_dashboard_page() {
                                 <th>Event Type</th>
                                 <th>Details</th>
                                 <th>IP Address</th>
+                                <th>Country</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -648,6 +649,7 @@ function sl_security_render_dashboard_page() {
                                     <td><span class="sl-security-event-type"><?php echo esc_html($event['event_type'] ?? ''); ?></span></td>
                                     <td><?php echo esc_html(substr($event['uri'] ?? '', 0, 50) . (strlen($event['uri'] ?? '') > 50 ? '...' : '')); ?></td>
                                     <td><?php echo esc_html($event['source_ip'] ?? ''); ?></td>
+                                    <td><?php echo esc_html($event['cf_country'] ?? ''); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -1020,124 +1022,139 @@ function sl_security_render_events_page() {
     $author_enum = function_exists('sl_sem_count_events_by_type') ? sl_sem_count_events_by_type('author_enumeration_blocked') : 0;
 
     ?>
-    <div class="wrap">
-        <h1>Security Events</h1>
+    <div class="wrap sl-security-wrap">
+        <div class="sl-security-page-header">
+            <div>
+                <h1>Security Events</h1>
+                <p class="sl-security-tagline">Review blocked and suspicious requests handled by the security layer</p>
+            </div>
+        </div>
 
         <?php sl_security_render_notice(); ?>
 
-        <p>
-            Security Event Monitoring records blocked or suspicious requests handled by the Severino Labs Security Layer.
-            Cloudflare-blocked requests will not appear here because they are stopped before reaching WordPress.
-        </p>
-
-        <hr>
-
-        <h2>Event Dashboard</h2>
-
-        <div class="sl-security-status-cards">
-            <?php
-            sl_security_render_status_card(
-                'SEM',
-                $sem_enabled ? 'Enabled' : 'Disabled',
-                $sem_enabled ? 'Security events are being logged' : 'Enable SEM in Settings',
-                $sem_enabled ? '#008a20' : '#646970'
-            );
-
-            sl_security_render_status_card(
-                'Events Today',
-                $events_today,
-                'Events logged today',
-                $events_today > 0 ? '#dba617' : '#008a20'
-            );
-
-            sl_security_render_status_card(
-                'XML-RPC Blocks',
-                $xmlrpc_blocks,
-                'Recent XML-RPC block events',
-                $xmlrpc_blocks > 0 ? '#dba617' : '#2271b1'
-            );
-
-            sl_security_render_status_card(
-                'Enumeration Attempts',
-                $rest_enum + $author_enum,
-                'REST and author enumeration events',
-                ($rest_enum + $author_enum) > 0 ? '#dba617' : '#2271b1'
-            );
-            ?>
+        <div class="sl-security-description">
+            <p>
+                Security Event Monitoring records blocked or suspicious requests handled by the Severino Labs Security Layer.
+                Cloudflare-blocked requests will not appear here because they are stopped before reaching WordPress.
+            </p>
         </div>
 
-        <h2>Recent Security Events</h2>
+        <div class="sl-security-section">
+            <h2><span class="dashicons dashicons-chart-bar"></span> Event Dashboard</h2>
 
-        <?php if (empty($events)) : ?>
-            <p>No security events have been logged yet.</p>
-        <?php else : ?>
-            <div class="sl-security-events-table-wrapper">
-                <table class="widefat striped sl-security-table-expandable">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Event</th>
-                            <th>Method</th>
-                            <th>URI</th>
-                            <th>Source IP</th>
-                            <th>Country</th>
-                            <th>User</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($events as $event) : ?>
-                            <tr class="sl-security-event-summary" tabindex="0">
-                                <td><?php echo esc_html($event['timestamp'] ?? ''); ?></td>
-                                <td><code><?php echo esc_html($event['event_type'] ?? ''); ?></code></td>
-                                <td><?php echo esc_html($event['method'] ?? ''); ?></td>
-                                <td><code><?php echo esc_html($event['uri'] ?? ''); ?></code></td>
-                                <td><?php echo esc_html($event['source_ip'] ?? ''); ?></td>
-                                <td><?php echo esc_html($event['cf_country'] ?? ''); ?></td>
-                                <td><?php echo esc_html($event['user_id'] ? $event['user_id'] : 'Guest'); ?></td>
-                                <td class="sl-security-event-expand-icon"><span class="dashicons dashicons-arrow-right-alt2"></span></td>
-                            </tr>
-                            <tr class="sl-security-event-details-row">
-                                <td colspan="8">
-                                    <div class="sl-security-event-details-panel">
-                                        <div class="sl-security-event-detail"><strong>User Agent:</strong> <?php echo esc_html($event['user_agent'] ?? ''); ?></div>
-                                        <div class="sl-security-event-detail"><strong>Referer:</strong> <?php echo esc_html($event['referer'] ?? ''); ?></div>
-                                        <div class="sl-security-event-detail"><strong>CF Ray:</strong> <?php echo esc_html($event['cf_ray'] ?? ''); ?></div>
-                                        <div class="sl-security-event-detail"><strong>Details:</strong> <?php echo esc_html(wp_json_encode($event['details'] ?? [])); ?></div>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <div class="sl-security-status-cards">
+                <?php
+                sl_security_render_status_card(
+                    'SEM',
+                    $sem_enabled ? 'Enabled' : 'Disabled',
+                    $sem_enabled ? 'Security events are being logged' : 'Enable SEM in Settings',
+                    $sem_enabled ? '#008a20' : '#646970',
+                    'dashicons-visibility'
+                );
+
+                sl_security_render_status_card(
+                    'Events Today',
+                    $events_today,
+                    'Events logged today',
+                    $events_today > 0 ? '#dba617' : '#008a20',
+                    'dashicons-flag'
+                );
+
+                sl_security_render_status_card(
+                    'XML-RPC Blocks',
+                    $xmlrpc_blocks,
+                    'Recent XML-RPC block events',
+                    $xmlrpc_blocks > 0 ? '#dba617' : '#2271b1',
+                    'dashicons-shield'
+                );
+
+                sl_security_render_status_card(
+                    'Enumeration Attempts',
+                    $rest_enum + $author_enum,
+                    'REST and author enumeration events',
+                    ($rest_enum + $author_enum) > 0 ? '#dba617' : '#2271b1',
+                    'dashicons-search'
+                );
+                ?>
             </div>
-        <?php endif; ?>
+        </div>
 
-        <hr>
+        <div class="sl-security-section">
+            <h2><span class="dashicons dashicons-list-view"></span> Recent Security Events</h2>
 
-        <h2>Raw Event Log</h2>
+            <?php if (empty($events)) : ?>
+                <p>No security events have been logged yet.</p>
+            <?php else : ?>
+                <div class="sl-security-events-table-wrapper">
+                    <table class="widefat striped sl-security-table-expandable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Method</th>
+                                <th>URI</th>
+                                <th>Source IP</th>
+                                <th>Country</th>
+                                <th>User</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($events as $event) : ?>
+                                <tr class="sl-security-event-summary" tabindex="0">
+                                    <td><?php echo esc_html($event['timestamp'] ?? ''); ?></td>
+                                    <td><code><?php echo esc_html($event['event_type'] ?? ''); ?></code></td>
+                                    <td><?php echo esc_html($event['method'] ?? ''); ?></td>
+                                    <td><code><?php echo esc_html($event['uri'] ?? ''); ?></code></td>
+                                    <td><?php echo esc_html($event['source_ip'] ?? ''); ?></td>
+                                    <td><?php echo esc_html($event['cf_country'] ?? ''); ?></td>
+                                    <td><?php echo esc_html($event['user_id'] ? $event['user_id'] : 'Guest'); ?></td>
+                                    <td class="sl-security-event-expand-icon"><span class="dashicons dashicons-arrow-right-alt2"></span></td>
+                                </tr>
+                                <tr class="sl-security-event-details-row">
+                                    <td colspan="8">
+                                        <div class="sl-security-event-details-panel">
+                                            <div class="sl-security-event-detail"><strong>User Agent:</strong> <?php echo esc_html($event['user_agent'] ?? ''); ?></div>
+                                            <div class="sl-security-event-detail"><strong>Referer:</strong> <?php echo esc_html($event['referer'] ?? ''); ?></div>
+                                            <div class="sl-security-event-detail"><strong>CF Ray:</strong> <?php echo esc_html($event['cf_ray'] ?? ''); ?></div>
+                                            <div class="sl-security-event-detail"><strong>Details:</strong> <?php echo esc_html(wp_json_encode($event['details'] ?? [])); ?></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
 
-        <?php if (defined('SL_SEM_LOG_FILE') && file_exists(SL_SEM_LOG_FILE)) : ?>
-            <textarea readonly style="width: 100%; max-width: 1400px; height: 260px; font-family: monospace;"><?php
-                echo esc_textarea(sl_security_get_recent_log_lines(SL_SEM_LOG_FILE, 80));
-            ?></textarea>
-        <?php else : ?>
-            <p>No raw security event log has been created yet.</p>
-        <?php endif; ?>
+        <div class="sl-security-section">
+            <h2><span class="dashicons dashicons-media-text"></span> Raw Event Log</h2>
 
-        <hr>
+            <?php if (defined('SL_SEM_LOG_FILE') && file_exists(SL_SEM_LOG_FILE)) : ?>
+                <div class="sl-security-log-container">
+                    <textarea readonly class="sl-security-log-textarea"><?php
+                        echo esc_textarea(sl_security_get_recent_log_lines(SL_SEM_LOG_FILE, 80));
+                    ?></textarea>
+                </div>
+            <?php else : ?>
+                <p>No raw security event log has been created yet.</p>
+            <?php endif; ?>
+        </div>
 
-        <h2>Danger Zone</h2>
+        <div class="sl-security-section">
+            <h2><span class="dashicons dashicons-warning"></span> Danger Zone</h2>
 
-        <p style="max-width: 900px;">
-            Clearing the event log removes local SEM history only. It does not change firewall rules, Cloudflare settings, or site configuration.
-        </p>
+            <p class="sl-security-danger-zone-note">
+                Clearing the event log removes local SEM history only. It does not change firewall rules, Cloudflare settings, or site configuration.
+            </p>
 
-        <form method="post">
-            <?php wp_nonce_field('sl_security_action'); ?>
-            <input type="hidden" name="sl_security_action" value="clear_sem_log">
-            <?php submit_button('Clear Security Event Log', 'delete', 'submit', false); ?>
-        </form>
+            <form method="post">
+                <?php wp_nonce_field('sl_security_action'); ?>
+                <input type="hidden" name="sl_security_action" value="clear_sem_log">
+                <?php submit_button('Clear Security Event Log', 'delete', 'submit', false); ?>
+            </form>
+        </div>
     </div>
     <?php
 }
@@ -1174,7 +1191,7 @@ function sl_security_render_settings_page() {
             <table class="widefat striped sl-security-table">
                 <tbody>
                     <tr>
-                        <th scope="row" style="width: 200px;">
+                        <th scope="row" class="sl-security-settings-label">
                             <label for="passkey_login_logo_url">Passkey Login Logo URL</label>
                         </th>
                         <td>
@@ -1214,7 +1231,7 @@ function sl_security_render_settings_page() {
             <table class="widefat striped sl-security-table">
                 <tbody>
                     <tr>
-                        <th scope="row" style="width: 200px;">
+                        <th scope="row" class="sl-security-settings-label">
                             <label for="fim_targets">Monitored Targets</label>
                         </th>
                         <td>
@@ -1252,11 +1269,11 @@ function sl_security_render_settings_page() {
             <?php foreach ($groups as $group_name => $controls) : ?>
                 <h3><?php echo esc_html($group_name); ?></h3>
 
-                <table class="widefat striped sl-security-table">
+                <table class="widefat striped sl-security-table sl-security-controls-table">
                     <thead>
                         <tr>
-                            <th style="width: 280px;">Control</th>
-                            <th style="width: 160px;">Status</th>
+                            <th class="sl-security-controls-col-control">Control</th>
+                            <th class="sl-security-controls-col-status">Status</th>
                             <th>Description</th>
                         </tr>
                     </thead>
@@ -1274,9 +1291,7 @@ function sl_security_render_settings_page() {
 
                                 <td>
                                     <?php if ($locked) : ?>
-                                        <span style="display: inline-block; padding: 4px 8px; background: #e7f5ea; color: #008a20; border: 1px solid #b8e6c1; border-radius: 4px;">
-                                            Always Enabled
-                                        </span>
+                                        <span class="sl-security-locked-badge">Always Enabled</span>
                                     <?php else : ?>
                                         <label>
                                             <input
@@ -1479,7 +1494,7 @@ function sl_security_render_change_summary($status) {
     $modified = $status['modified'] ?? [];
 
     ?>
-    <table class="widefat striped" style="max-width: 1200px;">
+    <table class="widefat striped sl-security-change-summary-table">
         <thead>
             <tr>
                 <th>Type</th>
@@ -1503,9 +1518,9 @@ function sl_security_render_change_row($label, $files) {
         <td><?php echo esc_html(count($files)); ?></td>
         <td>
             <?php if (empty($files)) : ?>
-                <span style="color: #646970;">None</span>
+                <span class="sl-security-change-empty">None</span>
             <?php else : ?>
-                <ul style="margin: 0;">
+                <ul class="sl-security-change-files">
                     <?php foreach ($files as $file) : ?>
                         <li><code><?php echo esc_html($file); ?></code></li>
                     <?php endforeach; ?>
@@ -1548,6 +1563,11 @@ function sl_security_render_target_groups() {
     ];
 
     ?>
+    <p class="sl-security-config-description">
+        These are the WordPress configuration, bootstrap, admin core, and custom code locations actively
+        baselined and verified during each integrity check.
+    </p>
+
     <div class="sl-security-expandable-table">
         <details>
             <summary class="sl-security-table-toggle">
@@ -1555,7 +1575,7 @@ function sl_security_render_target_groups() {
                 <span class="dashicons dashicons-arrow-right-alt2"></span>
             </summary>
             <div class="sl-security-table-content">
-                <table class="widefat striped">
+                <table class="widefat striped sl-security-config-table">
                 <thead>
                     <tr>
                         <th>Group</th>
@@ -1567,9 +1587,9 @@ function sl_security_render_target_groups() {
                         <tr>
                             <td><strong><?php echo esc_html($group_name); ?></strong></td>
                             <td>
-                                <ul style="margin: 0; padding-left: 20px;">
+                                <ul class="sl-security-target-list">
                                     <?php foreach ($targets as $target) : ?>
-                                        <li style="margin-bottom: 4px;"><code style="font-size: 12px;"><?php echo esc_html($target); ?></code></li>
+                                        <li><code><?php echo esc_html($target); ?></code></li>
                                     <?php endforeach; ?>
                                 </ul>
                             </td>
@@ -1592,7 +1612,7 @@ function sl_security_render_excluded_paths() {
     }
 
     ?>
-    <p style="margin-bottom: 15px;">
+    <p class="sl-security-config-description">
         These paths are intentionally excluded to avoid noisy alerts from logs, caches, uploads, temporary files,
         backups, dependencies, and the monitor's own data files.
     </p>
@@ -1604,7 +1624,7 @@ function sl_security_render_excluded_paths() {
                 <span class="dashicons dashicons-arrow-right-alt2"></span>
             </summary>
             <div class="sl-security-table-content">
-                <table class="widefat striped">
+                <table class="widefat striped sl-security-config-table">
                 <thead>
                     <tr>
                         <th>Path</th>
