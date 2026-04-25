@@ -63,8 +63,19 @@ function sl_sem_clean_details($details) {
     return $clean;
 }
 
+function sl_sem_user_opted_out_from_logs() {
+    return is_user_logged_in() && get_user_meta(get_current_user_id(), 'sl_security_exclude_from_sem', true) === '1';
+}
+
 function sl_sem_should_exclude_logged_in_user() {
-    return function_exists('sl_security_setting_enabled') && sl_security_setting_enabled('exclude_logged_in_users_from_sem') && is_user_logged_in();
+    if (!function_exists('sl_security_setting_enabled')) {
+        return false;
+    }
+
+    return (
+        sl_security_setting_enabled('exclude_logged_in_users_from_sem') &&
+        is_user_logged_in()
+    ) || sl_sem_user_opted_out_from_logs();
 }
 
 function sl_sem_log_event($event_type, $details = []) {

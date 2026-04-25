@@ -222,6 +222,109 @@ function sl_security_redirect_with_message($message, $page = SL_SECURITY_MENU_SL
     exit;
 }
 
+function sl_security_get_score_breakdown($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today) {
+    return [
+        [
+            'label' => 'Plugin active',
+            'value' => 20,
+            'active' => true,
+            'description' => 'Core security monitoring is initialized.',
+        ],
+        [
+            'label' => 'File Integrity Monitoring',
+            'value' => $fim_enabled ? 25 : 0,
+            'active' => $fim_enabled,
+            'description' => 'Monitors file changes in your WordPress installation.',
+        ],
+        [
+            'label' => 'Trusted baseline',
+            'value' => $fim_enabled && $baseline_exists ? 15 : 0,
+            'active' => $fim_enabled && $baseline_exists,
+            'description' => 'A trusted FIM baseline is available.',
+        ],
+        [
+            'label' => 'Recent integrity check',
+            'value' => $fim_enabled && isset($fim_status['status']) && $fim_status['status'] === 'passed' ? 10 : 0,
+            'active' => $fim_enabled && isset($fim_status['status']) && $fim_status['status'] === 'passed',
+            'description' => 'The latest file integrity check passed.',
+        ],
+        [
+            'label' => 'Event monitoring',
+            'value' => $sem_enabled ? 20 : 0,
+            'active' => $sem_enabled,
+            'description' => 'Security events are being tracked.',
+        ],
+        [
+            'label' => 'Clean event history',
+            'value' => $sem_enabled && $events_today === 0 ? 10 : 0,
+            'active' => $sem_enabled && $events_today === 0,
+            'description' => 'No security events were logged today.',
+        ],
+    ];
+}
+
+function sl_security_render_score_breakdown(array $breakdown) {
+    echo '<div class="sl-security-score-breakdown">';
+    echo '<strong>Score breakdown</strong>';
+    echo '<ul>';
+
+    foreach ($breakdown as $item) {
+        printf(
+            '<li class="%s"><div class="sl-security-score-breakdown-label">%s</div><div class="sl-security-score-breakdown-meta"><span class="sl-security-score-breakdown-value">%s pts</span><span class="sl-security-score-breakdown-note">%s</span></div></li>',
+            esc_attr($item['active'] ? 'active' : 'inactive'),
+            esc_html($item['label']),
+            esc_html($item['value']),
+            esc_html($item['description'])
+        );
+    }
+
+    echo '</ul>';
+    echo '</div>';
+}
+
+function sl_security_get_recommendation_section_title(array $recommendations) {
+    foreach ($recommendations as $recommendation) {
+        if (in_array($recommendation['priority'], ['high', 'medium'], true)) {
+            return 'Action Required';
+        }
+    }
+
+    return 'Recommendations';
+}
+
+function sl_security_render_user_profile_sem_optout($user) {
+    $opt_out = get_user_meta($user->ID, 'sl_security_exclude_from_sem', true);
+    ?>
+    <h2>Severino Labs Security Layer</h2>
+    <table class="form-table">
+        <tr>
+            <th><label for="sl_security_exclude_from_sem">Exclude my activity from security logs</label></th>
+            <td>
+                <label>
+                    <input name="sl_security_exclude_from_sem" type="checkbox" id="sl_security_exclude_from_sem" value="1" <?php checked($opt_out, '1'); ?> />
+                    Don't log my authenticated activity in the security event log.
+                </label>
+                <p class="description">When enabled, your authenticated requests are ignored by Severino Labs event logging.</p>
+            </td>
+        </tr>
+    </table>
+    <?php
+}
+
+function sl_security_save_user_profile_sem_optout($user_id) {
+    if (!current_user_can('edit_user', $user_id)) {
+        return false;
+    }
+
+    $value = isset($_POST['sl_security_exclude_from_sem']) ? '1' : '0';
+    update_user_meta($user_id, 'sl_security_exclude_from_sem', $value);
+}
+
+add_action('show_user_profile', 'sl_security_render_user_profile_sem_optout');
+add_action('edit_user_profile', 'sl_security_render_user_profile_sem_optout');
+add_action('personal_options_update', 'sl_security_save_user_profile_sem_optout');
+add_action('edit_user_profile_update', 'sl_security_save_user_profile_sem_optout');
+
 function sl_security_get_baseline_info() {
     if (!file_exists(SL_FIM_BASELINE_FILE)) {
         return null;
@@ -347,10 +450,10 @@ function sl_security_get_recommendations($fim_enabled, $sem_enabled, $baseline_e
     // Check if there are security events today
     if ($sem_enabled && $events_today > 0) {
         $recommendations[] = [
-            'priority' => 'medium',
+            'priority' => 'low',
             'icon' => 'dashicons-flag',
             'title' => 'Review Security Events',
-            'description' => 'There have been ' . $events_today . ' security events today. Review them to ensure your site is secure.',
+            'description' => 'There have been ' . $events_today . ' security events today. Review them to confirm everything is expected.',
             'action' => '<a href="' . esc_url(admin_url('admin.php?page=' . SL_SECURITY_EVENTS_SLUG)) . '" class="button button-secondary">Review Events</a>'
         ];
     }
@@ -392,6 +495,7 @@ function sl_security_render_dashboard_page() {
 
     // Get recent security events
     $recent_events = function_exists('sl_sem_get_recent_events') ? sl_sem_get_recent_events(10) : [];
+    $score_breakdown = sl_security_get_score_breakdown($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today);
 
     ?>
     <div class="wrap sl-security-wrap">
@@ -437,6 +541,7 @@ function sl_security_render_dashboard_page() {
                                 <span class="dashicons dashicons-database"></span> Baseline <?php echo $baseline_exists ? 'Ready' : 'Needed'; ?>
                             </span>
                         </div>
+                        <?php sl_security_render_score_breakdown($score_breakdown); ?>
                     </div>
                 </div>
             </div>
@@ -485,13 +590,15 @@ function sl_security_render_dashboard_page() {
                 </div>
             </div>
 
-            <!-- Action Required -->
+            <!-- Recommendations -->
             <?php
             $recommendations = sl_security_get_recommendations($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today);
+            $recommendation_title = sl_security_get_recommendation_section_title($recommendations);
+            $recommendation_icon = $recommendation_title === 'Action Required' ? 'dashicons-warning' : 'dashicons-lightbulb';
             if (!empty($recommendations)) :
             ?>
             <div class="sl-security-dashboard-section sl-security-actions-section">
-                <h3><span class="dashicons dashicons-warning"></span> Action Required</h3>
+                <h3><span class="dashicons <?php echo esc_attr($recommendation_icon); ?>"></span> <?php echo esc_html($recommendation_title); ?></h3>
                 <div class="sl-security-action-items">
                     <?php foreach ($recommendations as $rec) : ?>
                         <div class="sl-security-action-item <?php echo esc_attr($rec['priority']); ?>">
