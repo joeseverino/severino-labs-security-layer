@@ -98,6 +98,14 @@ For support and feature requests, please visit the [GitHub repository](https://g
 
 ## Changelog
 
+### Version 5.1.4
+- Score breakdown is collapsible again (fixed `<details>` selector mismatch)
+- Every status card across Dashboard, File Integrity, and Security Events now uses the same icon-tagged layout
+- Split the Dashboard's recommendation block into two sections: "Action Required" (high/medium priority) and "Recommendations" (optional improvements) so each label is honest
+- Consolidated the dashboard metrics grid onto the shared status-cards class — one grid system across the plugin
+- Removed unused `render_controls_summary`, `get_recommendation_section_title`, and the `render_metric_card` shim
+- Extracted recommendation rendering into a single reusable helper
+
 ### Version 5.1.3
 - Unified the Dashboard, File Integrity, and Security Events pages around a single status-card style for a seamless cross-page look
 - Refined the security-score donut: smaller percentage, tighter circle, better-balanced label

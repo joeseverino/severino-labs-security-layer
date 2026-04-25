@@ -96,20 +96,13 @@
     margin-top: 18px;
 }
 
-.sl-security-score-breakdown strong {
-    display: block;
-    margin-bottom: 10px;
-    color: #1d2327;
-    font-size: 13px;
-}
-
-.sl-security-score-breakdown ul {
+.sl-security-score-breakdown-list {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.sl-security-score-breakdown li {
+.sl-security-score-breakdown-list li {
     display: grid;
     grid-template-columns: 1fr 70px;
     gap: 16px;
@@ -118,31 +111,31 @@
     border-bottom: 1px solid #f0f0f0;
 }
 
-.sl-security-score-breakdown li:last-child {
+.sl-security-score-breakdown-list li:last-child {
     border-bottom: none;
 }
 
-.sl-security-score-breakdown .sl-security-score-breakdown-info {
+.sl-security-score-breakdown-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
 }
 
-.sl-security-score-breakdown .sl-security-score-breakdown-label {
+.sl-security-score-breakdown-label {
     font-size: 13px;
     font-weight: 600;
     color: #1d2327;
     line-height: 1.3;
 }
 
-.sl-security-score-breakdown .sl-security-score-breakdown-note {
+.sl-security-score-breakdown-note {
     color: #646970;
     font-size: 12px;
     line-height: 1.4;
 }
 
-.sl-security-score-breakdown .sl-security-score-breakdown-value {
+.sl-security-score-breakdown-value {
     font-size: 14px;
     font-weight: 700;
     color: #1d2327;
@@ -150,8 +143,8 @@
     white-space: nowrap;
 }
 
-.sl-security-score-breakdown li.inactive .sl-security-score-breakdown-label,
-.sl-security-score-breakdown li.inactive .sl-security-score-breakdown-value {
+.sl-security-score-breakdown-list li.inactive .sl-security-score-breakdown-label,
+.sl-security-score-breakdown-list li.inactive .sl-security-score-breakdown-value {
     color: #8c8f94;
     font-weight: 500;
 }
@@ -336,21 +329,16 @@
     color: #646970;
 }
 
-.sl-security-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-}
-
-/* Reuse status-card visuals for the dashboard metric cards */
-.sl-security-metrics-grid .sl-security-status-card {
-    border-left-width: 4px;
-    border-left-style: solid;
-}
-
 /* Actions Section */
 .sl-security-actions-section {
     grid-column: 1 / -1;
+}
+
+.sl-security-section-intro {
+    margin: -4px 0 14px 0;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .sl-security-action-items {
@@ -620,10 +608,6 @@
 @media (max-width: 782px) {
     .sl-security-dashboard-section {
         padding: 15px;
-    }
-
-    .sl-security-metrics-grid {
-        grid-template-columns: 1fr;
     }
 
     .sl-security-system-grid {

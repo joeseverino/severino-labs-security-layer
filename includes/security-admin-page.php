@@ -264,39 +264,55 @@ function sl_security_get_score_breakdown($fim_enabled, $sem_enabled, $baseline_e
 }
 
 function sl_security_render_score_breakdown(array $breakdown) {
-    echo '<div class="sl-security-score-breakdown">';
-    echo '<details class="sl-security-expandable-table">';
-    echo '<summary class="sl-security-table-toggle" role="button" aria-expanded="false">';
-    echo '<span>Score breakdown</span>';
-    echo '<span class="dashicons dashicons-arrow-right-alt2"></span>';
-    echo '</summary>';
-    echo '<div class="sl-security-table-content">';
-    echo '<ul>';
-
-    foreach ($breakdown as $item) {
-        printf(
-            '<li class="%s"><div class="sl-security-score-breakdown-info"><span class="sl-security-score-breakdown-label">%s</span><span class="sl-security-score-breakdown-note">%s</span></div><span class="sl-security-score-breakdown-value">%s pts</span></li>',
-            esc_attr($item['active'] ? 'active' : 'inactive'),
-            esc_html($item['label']),
-            esc_html($item['description']),
-            esc_html($item['value'])
-        );
-    }
-
-    echo '</ul>';
-    echo '</div>';
-    echo '</details>';
-    echo '</div>';
+    ?>
+    <div class="sl-security-score-breakdown sl-security-expandable-table">
+        <details>
+            <summary class="sl-security-table-toggle">
+                <span>Score breakdown</span>
+                <span class="dashicons dashicons-arrow-right-alt2"></span>
+            </summary>
+            <div class="sl-security-table-content">
+                <ul class="sl-security-score-breakdown-list">
+                    <?php foreach ($breakdown as $item) : ?>
+                        <li class="<?php echo esc_attr($item['active'] ? 'active' : 'inactive'); ?>">
+                            <div class="sl-security-score-breakdown-info">
+                                <span class="sl-security-score-breakdown-label"><?php echo esc_html($item['label']); ?></span>
+                                <span class="sl-security-score-breakdown-note"><?php echo esc_html($item['description']); ?></span>
+                            </div>
+                            <span class="sl-security-score-breakdown-value"><?php echo esc_html($item['value']); ?> pts</span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </details>
+    </div>
+    <?php
 }
 
-function sl_security_get_recommendation_section_title(array $recommendations) {
-    foreach ($recommendations as $recommendation) {
-        if (in_array($recommendation['priority'], ['high', 'medium'], true)) {
-            return 'Action Required';
-        }
+function sl_security_render_recommendation_list(array $recommendations) {
+    if (empty($recommendations)) {
+        return;
     }
-
-    return 'Recommendations';
+    ?>
+    <div class="sl-security-action-items">
+        <?php foreach ($recommendations as $rec) : ?>
+            <div class="sl-security-action-item <?php echo esc_attr($rec['priority']); ?>">
+                <div class="sl-security-action-icon">
+                    <span class="dashicons <?php echo esc_attr($rec['icon']); ?>"></span>
+                </div>
+                <div class="sl-security-action-content">
+                    <h4><?php echo esc_html($rec['title']); ?></h4>
+                    <p><?php echo esc_html($rec['description']); ?></p>
+                    <?php if (!empty($rec['action'])) : ?>
+                        <div class="sl-security-action-button">
+                            <?php echo $rec['action']; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+    <?php
 }
 
 function sl_security_render_user_profile_sem_optout($user) {
@@ -556,13 +572,13 @@ function sl_security_render_dashboard_page() {
             <!-- Key Metrics -->
             <div class="sl-security-dashboard-section sl-security-metrics-section">
                 <h3><span class="dashicons dashicons-chart-bar"></span> Security Metrics</h3>
-                <div class="sl-security-metrics-grid">
+                <div class="sl-security-status-cards">
                     <?php
                     // File Integrity with automation status
                     $fim_auto_status = $fim_enabled && $fim_schedule_enabled && $next_check ? 'Automated' : ($fim_enabled ? 'Manual' : 'Disabled');
                     $fim_auto_color = ($fim_enabled && $fim_schedule_enabled && $next_check) ? '#008a20' : ($fim_enabled ? '#dba617' : '#646970');
 
-                    sl_security_render_metric_card(
+                    sl_security_render_status_card(
                         'File Integrity Monitoring',
                         $fim_auto_status,
                         $fim_enabled ? ($next_check ? 'Next check: ' . wp_date('M j, g:i A', $next_check) : 'Ready for manual check') : 'Enable in Settings to monitor file changes',
@@ -570,7 +586,7 @@ function sl_security_render_dashboard_page() {
                         'dashicons-shield-alt'
                     );
 
-                    sl_security_render_metric_card(
+                    sl_security_render_status_card(
                         'Security Events Today',
                         $events_today,
                         $sem_enabled ? ($events_today > 0 ? 'Security events detected' : 'No security events today') : 'Enable event monitoring in Settings',
@@ -578,7 +594,7 @@ function sl_security_render_dashboard_page() {
                         'dashicons-flag'
                     );
 
-                    sl_security_render_metric_card(
+                    sl_security_render_status_card(
                         'Total Events Logged',
                         number_format($total_events),
                         'All-time security event history',
@@ -586,7 +602,7 @@ function sl_security_render_dashboard_page() {
                         'dashicons-list-view'
                     );
 
-                    sl_security_render_metric_card(
+                    sl_security_render_status_card(
                         'Last FIM Check',
                         $fim_enabled ? sl_security_get_last_check_label($fim_status) : 'Disabled',
                         $fim_enabled ? sl_security_get_last_check_message($fim_status) : 'File integrity monitoring is disabled',
@@ -597,34 +613,31 @@ function sl_security_render_dashboard_page() {
                 </div>
             </div>
 
-            <!-- Recommendations -->
+            <!-- Action Required & Recommendations -->
             <?php
             $recommendations = sl_security_get_recommendations($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today);
-            $recommendation_title = sl_security_get_recommendation_section_title($recommendations);
-            $recommendation_icon = $recommendation_title === 'Action Required' ? 'dashicons-warning' : 'dashicons-lightbulb';
-            if (!empty($recommendations)) :
+            $action_items = array_values(array_filter($recommendations, function ($rec) {
+                return in_array($rec['priority'], ['high', 'medium'], true);
+            }));
+            $suggestion_items = array_values(array_filter($recommendations, function ($rec) {
+                return $rec['priority'] === 'low';
+            }));
             ?>
-            <div class="sl-security-dashboard-section sl-security-actions-section">
-                <h3><span class="dashicons <?php echo esc_attr($recommendation_icon); ?>"></span> <?php echo esc_html($recommendation_title); ?></h3>
-                <div class="sl-security-action-items">
-                    <?php foreach ($recommendations as $rec) : ?>
-                        <div class="sl-security-action-item <?php echo esc_attr($rec['priority']); ?>">
-                            <div class="sl-security-action-icon">
-                                <span class="dashicons <?php echo esc_attr($rec['icon']); ?>"></span>
-                            </div>
-                            <div class="sl-security-action-content">
-                                <h4><?php echo esc_html($rec['title']); ?></h4>
-                                <p><?php echo esc_html($rec['description']); ?></p>
-                                <?php if (!empty($rec['action'])) : ?>
-                                    <div class="sl-security-action-button">
-                                        <?php echo $rec['action']; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+
+            <?php if (!empty($action_items)) : ?>
+                <div class="sl-security-dashboard-section sl-security-actions-section">
+                    <h3><span class="dashicons dashicons-warning"></span> Action Required</h3>
+                    <p class="sl-security-section-intro">These items need attention to keep your security posture strong.</p>
+                    <?php sl_security_render_recommendation_list($action_items); ?>
                 </div>
-            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($suggestion_items)) : ?>
+                <div class="sl-security-dashboard-section sl-security-actions-section">
+                    <h3><span class="dashicons dashicons-lightbulb"></span> Recommendations</h3>
+                    <p class="sl-security-section-intro">Optional improvements that can strengthen your monitoring.</p>
+                    <?php sl_security_render_recommendation_list($suggestion_items); ?>
+                </div>
             <?php endif; ?>
 
             <!-- Recent Activity -->
@@ -766,28 +779,32 @@ function sl_security_render_fim_page() {
                 'FIM Status',
                 $fim_enabled ? 'Enabled' : 'Disabled',
                 $fim_enabled ? 'Monitoring controls are active' : 'Enable FIM in Settings',
-                $fim_enabled ? '#008a20' : '#646970'
+                $fim_enabled ? '#008a20' : '#646970',
+                'dashicons-shield-alt'
             );
 
             sl_security_render_status_card(
                 'Baseline',
                 $baseline_exists ? 'Created' : 'Missing',
                 $baseline_exists ? 'Trusted file state exists' : 'Create a baseline before monitoring',
-                $baseline_exists ? '#008a20' : '#b32d2e'
+                $baseline_exists ? '#008a20' : '#b32d2e',
+                'dashicons-database'
             );
 
             sl_security_render_status_card(
                 'Last Check',
                 $fim_enabled ? sl_security_get_last_check_label($fim_status) : 'Disabled',
                 $fim_enabled ? sl_security_get_last_check_message($fim_status) : 'FIM is disabled in Settings',
-                $fim_enabled ? sl_security_get_status_color($fim_status) : '#646970'
+                $fim_enabled ? sl_security_get_status_color($fim_status) : '#646970',
+                'dashicons-search'
             );
 
             sl_security_render_status_card(
                 'Changed Files',
                 $fim_enabled ? sl_security_get_change_total($fim_status) : 0,
                 $fim_enabled ? sl_security_get_changed_files_description($fim_status) : 'Monitoring disabled',
-                ($fim_enabled && sl_security_get_change_total($fim_status) > 0) ? '#b32d2e' : '#008a20'
+                ($fim_enabled && sl_security_get_change_total($fim_status) > 0) ? '#b32d2e' : '#008a20',
+                'dashicons-flag'
             );
             ?>
         </div>
@@ -1320,49 +1337,6 @@ function sl_security_render_settings_page() {
     <?php
 }
 
-function sl_security_render_controls_summary() {
-    $settings = sl_security_get_settings();
-    $locked = sl_security_get_locked_settings();
-    $groups = sl_security_get_setting_groups();
-
-    ?>
-    <table class="widefat striped sl-security-table">
-        <thead>
-            <tr>
-                <th>Control Group</th>
-                <th>Enabled</th>
-                <th>Locked</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($groups as $group_name => $controls) : ?>
-                <?php
-                $enabled_count = 0;
-                $locked_count = 0;
-
-                foreach ($controls as $key => $control) {
-                    if (!empty($settings[$key])) {
-                        $enabled_count++;
-                    }
-
-                    if (in_array($key, $locked, true)) {
-                        $locked_count++;
-                    }
-                }
-                ?>
-                <tr>
-                    <td><strong><?php echo esc_html($group_name); ?></strong></td>
-                    <td><?php echo esc_html($enabled_count); ?></td>
-                    <td><?php echo esc_html($locked_count); ?></td>
-                    <td><?php echo esc_html(count($controls)); ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-    <?php
-}
-
 function sl_security_render_last_result_banner($status, $baseline_exists, $fim_enabled = true) {
     if (!$fim_enabled) {
         echo '<div class="notice notice-info"><p><strong>Status:</strong> File Integrity Monitoring is disabled in Settings.</p></div>';
@@ -1405,10 +1379,6 @@ function sl_security_render_status_card($title, $value, $description, $accent_co
         <p class="sl-security-status-desc"><?php echo esc_html($description); ?></p>
     </div>
     <?php
-}
-
-function sl_security_render_metric_card($title, $value, $description, $accent_color, $icon) {
-    sl_security_render_status_card($title, $value, $description, $accent_color, $icon);
 }
 
 function sl_security_get_last_check_label($status) {
