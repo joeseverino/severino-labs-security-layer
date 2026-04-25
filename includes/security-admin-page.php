@@ -271,7 +271,6 @@ function sl_security_render_score_breakdown(array $breakdown) {
     echo '<span class="dashicons dashicons-arrow-right-alt2"></span>';
     echo '</summary>';
     echo '<div class="sl-security-table-content">';
-    echo '<strong>Score breakdown</strong>';
     echo '<ul>';
 
     foreach ($breakdown as $item) {

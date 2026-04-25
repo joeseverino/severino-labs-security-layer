@@ -639,18 +639,23 @@
 }
 
 .sl-security-quick-action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    gap: 12px;
+}
+
+.sl-security-quick-action-buttons .sl-security-action-form,
+.sl-security-quick-action-buttons > a {
+    width: 100%;
 }
 
 .sl-security-quick-action-buttons .button {
+    width: 100%;
     justify-content: flex-start;
     text-align: left;
 }
 
 .sl-security-quick-action-buttons .dashicons {
-    margin-right: 8px;
+    margin-right: 10px;
 }
 
 /* System Section */
@@ -839,13 +844,19 @@
 /* Configuration Grid */
 .sl-security-config-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 30px;
     align-items: start;
 }
 
+.sl-security-config-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .sl-security-config-section h3 {
-    margin: 0 0 15px 0;
+    margin: 0;
     font-size: 16px;
     font-weight: 600;
     color: #1d2327;
@@ -875,33 +886,10 @@
 
 /* Expandable Tables */
 .sl-security-expandable-table {
-    position: relative;
-}
-
-.sl-security-table-toggle {
-    background: #ffffff;
     border: 1px solid #dcdcde;
-    border-radius: 6px;
-    padding: 16px 18px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    width: 100%;
-    text-align: left;
-}
-
-.sl-security-table-toggle:hover,
-.sl-security-table-toggle:focus {
-    background: #f4f6f8;
-    border-color: #cdd4db;
-}
-
-.sl-security-table-toggle {
-    cursor: pointer;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
 }
 
 .sl-security-expandable-table details {
@@ -909,37 +897,59 @@
 }
 
 .sl-security-expandable-table summary {
-    list-style: none;
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 16px 18px;
+    cursor: pointer;
+    background: #f8f9fa;
+    transition: background 0.2s ease;
+}
+
+.sl-security-expandable-table summary:hover,
+.sl-security-expandable-table summary:focus {
+    background: #f4f6f8;
 }
 
 .sl-security-expandable-table summary::-webkit-details-marker {
     display: none;
 }
 
-.sl-security-expandable-table details[open] .sl-security-table-toggle .dashicons {
+.sl-security-expandable-table details[open] summary {
+    background: #eef2f6;
+}
+
+.sl-security-expandable-table summary .dashicons {
+    transition: transform 0.2s ease;
+}
+
+.sl-security-expandable-table details[open] summary .dashicons {
     transform: rotate(90deg);
 }
 
-.sl-security-expandable-table[open] .sl-security-table-content,
+.sl-security-table-content {
+    display: none;
+    padding: 0 18px 18px;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
 .sl-security-expandable-table details[open] .sl-security-table-content {
     display: block;
+}
+
+.sl-security-table-content table {
+    margin: 0;
+    border: none;
+    width: 100%;
 }
 
 .sl-security-table-toggle span:first-child {
     flex: 1;
     min-width: 0;
-}
-
-.sl-security-table-toggle:hover {
-    background: #f0f0f0;
-}
-
-.sl-security-table-toggle .dashicons {
-    transition: transform 0.2s ease;
-}
-
-.sl-security-table-toggle.expanded .dashicons {
-    transform: rotate(90deg);
 }
 
 .sl-security-table-content {
