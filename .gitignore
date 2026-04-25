@@ -3,6 +3,8 @@ data/*.log
 data/*.json
 includes/error_log
 **/error_log
+debug.log
+wp-content/debug.log
 
 # Archives / review exports
 *.zip
@@ -16,12 +18,22 @@ includes/error_log
 # Temporary files
 *.tmp
 *.swp
+*.bak
+*.orig
 
 # Composer dependencies
 /vendor/
 
 # Composer local cache/artifacts
 .composer-cache/
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
 
 # VS Code: ignore local settings but keep the shared workspace config and IDE stubs
 .vscode/*
