@@ -17,3 +17,13 @@ includes/error_log
 # Temporary files
 *.tmp
 *.swp
+
+# Composer dependencies
+/vendor/
+
+# Composer local cache/artifacts
+.composer-cache/
+
+# VS Code local settings, except project settings if intentionally committed
+.vscode/*
+!.vscode/settings.json
