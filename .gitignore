@@ -11,7 +11,6 @@ includes/error_log
 
 # OS/editor files
 .DS_Store
-.vscode/
 .idea/
 
 # Temporary files
@@ -24,6 +23,8 @@ includes/error_log
 # Composer local cache/artifacts
 .composer-cache/
 
-# VS Code local settings, except project settings if intentionally committed
+# VS Code: ignore local settings but keep the shared workspace config and IDE stubs
 .vscode/*
 !.vscode/settings.json
+!.vscode/stubs/
+!.vscode/stubs/**

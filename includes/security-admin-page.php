@@ -1223,6 +1223,8 @@ function sl_security_render_settings_page() {
     $branding = sl_security_get_branding_settings();
     $fim_settings = sl_security_get_fim_settings();
     $passkey_verified = !empty($settings['passkey_usernameless_verified']);
+    $passkey_provider_available = function_exists('sl_security_passkey_provider_available')
+        && sl_security_passkey_provider_available();
 
     ?>
     <div class="wrap sl-security-wrap">
@@ -1317,10 +1319,37 @@ function sl_security_render_settings_page() {
                 </tbody>
             </table>
             <h2>Passkey Login Readiness</h2>
-            <p>Run a successful usernameless passkey test before enabling the passkey-only login screen.</p>
+            <p>
+                The passkey login screen delegates WebAuthn handling to the
+                <a href="https://wordpress.org/plugins/wp-webauthn/" target="_blank" rel="noopener">WP-WebAuthn</a>
+                plugin. Install and configure it first, then run a successful usernameless passkey test
+                before enabling the passkey-only login screen.
+            </p>
 
             <table class="widefat striped sl-security-table">
                 <tbody>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">WP-WebAuthn Plugin</th>
+                        <td>
+                            <?php if ($passkey_provider_available) : ?>
+                                <span class="sl-security-status-badge sl-security-status-enabled">
+                                    <span class="dashicons dashicons-yes-alt"></span> Detected
+                                </span>
+                                <p class="description sl-security-passkey-test-status">
+                                    WP-WebAuthn is active and exposing the required AJAX endpoints.
+                                </p>
+                            <?php else : ?>
+                                <span class="sl-security-status-badge sl-security-status-locked">
+                                    <span class="dashicons dashicons-warning"></span> Missing
+                                </span>
+                                <p class="description sl-security-passkey-test-status">
+                                    Install and activate
+                                    <a href="<?php echo esc_url(admin_url('plugin-install.php?s=wp-webauthn&tab=search&type=term')); ?>">WP-WebAuthn</a>
+                                    to enable passkey authentication.
+                                </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                     <tr>
                         <th scope="row" class="sl-security-settings-label">Usernameless Passkey Test</th>
                         <td>
@@ -1330,6 +1359,13 @@ function sl_security_render_settings_page() {
                                 </span>
                                 <p class="description sl-security-passkey-test-status">
                                     A usernameless passkey authentication test has completed successfully.
+                                </p>
+                            <?php elseif (!$passkey_provider_available) : ?>
+                                <span class="sl-security-status-badge sl-security-status-disabled">
+                                    <span class="dashicons dashicons-marker"></span> Unavailable
+                                </span>
+                                <p class="description sl-security-passkey-test-status">
+                                    Install WP-WebAuthn before running the test.
                                 </p>
                             <?php else : ?>
                                 <button type="button" id="sl-test-passkey" class="button button-primary">
@@ -1364,7 +1400,8 @@ function sl_security_render_settings_page() {
                             <?php
                             $enabled = !empty($settings[$key]);
                             $locked = in_array($key, $locked_settings, true);
-                            $passkey_locked = $key === 'enable_passkey_login' && !$passkey_verified;
+                            $passkey_locked = $key === 'enable_passkey_login'
+                                && (!$passkey_verified || !$passkey_provider_available);
                             if ($passkey_locked) {
                                 $enabled = false;
                             }
@@ -1425,7 +1462,11 @@ function sl_security_render_settings_page() {
                                 <td>
                                     <?php echo esc_html($control['description']); ?>
                                     <?php if ($passkey_locked) : ?>
-                                        <p class="description">Run the passkey test above to unlock.</p>
+                                        <?php if (!$passkey_provider_available) : ?>
+                                            <p class="description">WP-WebAuthn is not active; this toggle is locked until the plugin is installed.</p>
+                                        <?php else : ?>
+                                            <p class="description">Run the passkey test above to unlock.</p>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                             </tr>

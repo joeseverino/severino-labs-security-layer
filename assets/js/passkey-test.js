@@ -77,6 +77,14 @@
             });
 
             var startText = await startResponse.text();
+
+            // admin-ajax.php returns the literal "0" when no handler is
+            // registered for the requested action. That's the signature of
+            // a missing WP-WebAuthn plugin.
+            if (startText.trim() === '0') {
+                throw new Error('WP-WebAuthn is not active. Install and activate it to run this test.');
+            }
+
             var options;
 
             try {

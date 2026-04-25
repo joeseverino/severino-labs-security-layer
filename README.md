@@ -49,7 +49,9 @@ This project was built to reduce default WordPress exposure, improve visibility 
 - Passkey-first login interface
 - Configurable branding
 - Logo and label customization
-- Designed to work alongside a compatible WebAuthn/passkey plugin
+- Required usernameless-passkey verification before the toggle can be flipped on, so an admin can't accidentally lock themselves out
+
+> **Optional dependency for passkey-only login:** this feature delegates WebAuthn challenge issuance and verification to the [WP-WebAuthn](https://wordpress.org/plugins/wp-webauthn/) plugin. WP-WebAuthn must be installed, activated, and configured with at least one registered passkey before the test will pass. **Every other feature in this plugin works without WP-WebAuthn** — if you don't want passkey login you can ignore the dependency entirely. When WP-WebAuthn is missing the passkey toggle stays locked and the plugin falls back to the standard WordPress login screen.
 
 ## Scope and Limitations
 
@@ -135,9 +137,13 @@ This keeps the live plugin version-controlled and provides a rollback history fo
 
 ## Requirements
 
-- WordPress 5.0+
+- WordPress 5.8+
 - PHP 7.4+
 - MySQL 5.6+
+
+### Optional
+
+- **[WP-WebAuthn](https://wordpress.org/plugins/wp-webauthn/)** — required only if you want to use the passkey-only login feature. Without it the plugin still installs, activates, and runs cleanly; the passkey toggle simply stays locked and the standard WordPress login screen is used.
 
 ## Security Best Practices
 
@@ -149,6 +155,17 @@ This keeps the live plugin version-controlled and provides a rollback history fo
 6. Keep WordPress core, themes, plugins, PHP, and hosting controls updated.
 
 ## Changelog
+
+### Version 6.1.0
+
+- Gated the passkey-only login toggle behind a real usernameless-passkey verification test so an admin can't lock themselves out by enabling passkey login without a working credential.
+- Made the WP-WebAuthn dependency explicit with an admin notice when the toggle is enabled but the provider is missing, plus an in-page status row in Settings that shows whether the provider is detected.
+- Whitelisted admin requests through the REST `/users` and author-archive blockers so legitimate admin tooling (block editor, user directory, profile editors) keeps working while still blocking unauthenticated enumeration.
+- Redesigned the Security Controls table with separate **Status** and **Toggle** columns: a uniform color-coded pill (Always Enabled / Enabled / Disabled / Locked) plus a real iOS-style toggle switch for actionable rows.
+- Fixed the passkey-test button being silently inert on some setups (DOMContentLoaded race on footer scripts) and surfaced clearer errors when the WP-WebAuthn AJAX endpoints aren't responding.
+- Removed a nested `<form>` (HTML invalid) that was causing the "Reset Passkey Verification" button to actually trigger "Save All Settings".
+- Renamed `sl_render_wp_die_page` to `sl_security_render_wp_die_page` for prefix consistency.
+- Cleaned up the `.gitignore` so the shared `.vscode/stubs/` (WordPress stubs for Intelephense) stays tracked.
 
 ### Version 6.0.0 — Public repository preparation
 

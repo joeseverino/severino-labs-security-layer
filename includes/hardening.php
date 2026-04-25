@@ -176,11 +176,11 @@ if (sl_security_setting_enabled('block_unused_endpoints')) {
  */
 if (sl_security_setting_enabled('custom_error_page')) {
     add_filter('wp_die_handler', function () {
-        return 'sl_render_wp_die_page';
+        return 'sl_security_render_wp_die_page';
     });
 }
 
-function sl_render_wp_die_page($message, $title = '', $args = []) {
+function sl_security_render_wp_die_page($message, $title = '', $args = []) {
     $args = wp_parse_args($args, [
         'response' => 500,
     ]);

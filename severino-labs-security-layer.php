@@ -5,8 +5,16 @@
  * Author: Joe Severino
  * Author URI: https://jseverino.com
  * Version: 6.1.0
+ * Requires at least: 5.8
+ * Requires PHP: 7.4
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * Optional dependency: the passkey-only login feature delegates WebAuthn
+ * challenge issuance and verification to the WP-WebAuthn plugin
+ * (https://wordpress.org/plugins/wp-webauthn/). All other features
+ * (hardening, file integrity monitoring, security event logging) work
+ * independently with no extra plugins required.
  */
 
 if (!defined('ABSPATH')) {

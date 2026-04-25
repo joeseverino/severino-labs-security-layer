@@ -4,9 +4,53 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Whether the WP-WebAuthn plugin is active and exposing the AJAX endpoints
+ * this plugin depends on for passkey authentication.
+ *
+ * The passkey login screen and the usernameless passkey test in Settings
+ * both POST to admin-ajax.php using actions WP-WebAuthn registers
+ * (`wwa_auth_start` and `wwa_auth`). Without that plugin those endpoints
+ * return "0" and the flow can't complete.
+ */
+function sl_security_passkey_provider_available() {
+    return has_action('wp_ajax_wwa_auth_start')
+        || has_action('wp_ajax_nopriv_wwa_auth_start');
+}
+
+/**
+ * Show a persistent admin notice when a passkey-related setting is enabled
+ * but the WP-WebAuthn provider plugin isn't installed/active. Without
+ * this notice, the failure mode is silent (the test button just errors
+ * out and the login screen would lock the admin out of their site).
+ */
+function sl_security_render_passkey_dependency_notice() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $needs_provider = sl_security_setting_enabled('enable_passkey_login')
+        || sl_security_setting_enabled('passkey_usernameless_verified');
+
+    if (!$needs_provider || sl_security_passkey_provider_available()) {
+        return;
+    }
+
+    $install_url = admin_url('plugin-install.php?s=wp-webauthn&tab=search&type=term');
+
+    echo '<div class="notice notice-error"><p>';
+    echo '<strong>Severino Labs Security Layer:</strong> The passkey login feature requires the ';
+    echo '<a href="' . esc_url($install_url) . '">WP-WebAuthn</a> plugin. ';
+    echo 'Install and activate it, or disable passkey login under ';
+    echo '<a href="' . esc_url(admin_url('admin.php?page=' . SL_SECURITY_SETTINGS_SLUG)) . '">Severino Security &rarr; Settings</a>.';
+    echo '</p></div>';
+}
+add_action('admin_notices', 'sl_security_render_passkey_dependency_notice');
+
 if (
     !sl_security_setting_enabled('enable_passkey_login') ||
-    !sl_security_setting_enabled('passkey_usernameless_verified')
+    !sl_security_setting_enabled('passkey_usernameless_verified') ||
+    !sl_security_passkey_provider_available()
 ) {
     return;
 }
