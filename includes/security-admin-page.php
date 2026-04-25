@@ -398,7 +398,7 @@ function sl_security_render_dashboard_page() {
         <div class="sl-security-page-header">
             <div>
                 <h1><?php echo esc_html(SL_SECURITY_BRAND_NAME); ?></h1>
-                <p class="sl-security-tagline">Enterprise-grade WordPress security monitoring and hardening</p>
+                <p class="sl-security-tagline">Custom WordPress security monitoring and application hardening</p>
             </div>
             <div class="sl-security-header-actions">
                 <a class="page-title-action" href="<?php echo esc_url(admin_url('admin.php?page=' . SL_SECURITY_SETTINGS_SLUG)); ?>"><span class="dashicons dashicons-admin-settings"></span> Settings</a>
@@ -1472,7 +1472,6 @@ function sl_security_render_target_groups() {
 }
 
 
-// Test comment
 function sl_security_render_excluded_paths() {
     $excluded_paths = function_exists('sl_fim_get_excluded_paths') ? sl_fim_get_excluded_paths() : [];
 
