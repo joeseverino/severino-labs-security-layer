@@ -1328,9 +1328,11 @@ function sl_security_render_settings_page() {
                                 <span class="sl-security-status-badge sl-security-status-enabled">
                                     <span class="dashicons dashicons-yes-alt"></span> Verified
                                 </span>
-                                <p class="description">A usernameless passkey authentication test has completed successfully.</p>
+                                <p class="description sl-security-passkey-test-status">
+                                    A usernameless passkey authentication test has completed successfully.
+                                </p>
                             <?php else : ?>
-                                <button type="button" id="sl-test-passkey" class="button button-secondary">
+                                <button type="button" id="sl-test-passkey" class="button button-primary">
                                     <span class="dashicons dashicons-shield-alt"></span> Test Usernameless Passkey
                                 </button>
                                 <span id="sl-passkey-test-status" class="description sl-security-passkey-test-status">
@@ -1352,6 +1354,7 @@ function sl_security_render_settings_page() {
                         <tr>
                             <th class="sl-security-controls-col-control">Control</th>
                             <th class="sl-security-controls-col-status">Status</th>
+                            <th class="sl-security-controls-col-toggle">Toggle</th>
                             <th>Description</th>
                         </tr>
                     </thead>
@@ -1361,6 +1364,29 @@ function sl_security_render_settings_page() {
                             <?php
                             $enabled = !empty($settings[$key]);
                             $locked = in_array($key, $locked_settings, true);
+                            $passkey_locked = $key === 'enable_passkey_login' && !$passkey_verified;
+                            if ($passkey_locked) {
+                                $enabled = false;
+                            }
+                            $is_locked_row = $locked || $passkey_locked;
+
+                            if ($locked) {
+                                $badge_class = 'sl-security-status-always-on';
+                                $badge_icon = 'dashicons-lock';
+                                $badge_label = 'Always Enabled';
+                            } elseif ($passkey_locked) {
+                                $badge_class = 'sl-security-status-locked';
+                                $badge_icon = 'dashicons-lock';
+                                $badge_label = 'Locked';
+                            } elseif ($enabled) {
+                                $badge_class = 'sl-security-status-enabled';
+                                $badge_icon = 'dashicons-yes-alt';
+                                $badge_label = 'Enabled';
+                            } else {
+                                $badge_class = 'sl-security-status-disabled';
+                                $badge_icon = 'dashicons-marker';
+                                $badge_label = 'Disabled';
+                            }
                             ?>
                             <tr>
                                 <td>
@@ -1368,58 +1394,39 @@ function sl_security_render_settings_page() {
                                 </td>
 
                                 <td>
-                                    <?php
-                                    $passkey_locked = $key === 'enable_passkey_login' && !$passkey_verified;
-                                    if ($passkey_locked) {
-                                        $enabled = false;
-                                    }
+                                    <span class="sl-security-status-badge <?php echo esc_attr($badge_class); ?>">
+                                        <span class="dashicons <?php echo esc_attr($badge_icon); ?>"></span>
+                                        <?php echo esc_html($badge_label); ?>
+                                    </span>
+                                </td>
 
-                                    if ($locked) {
-                                        $badge_class = 'sl-security-status-locked';
-                                        $badge_icon = 'dashicons-lock';
-                                        $badge_label = 'Always Enabled';
-                                    } elseif ($passkey_locked) {
-                                        $badge_class = 'sl-security-status-locked';
-                                        $badge_icon = 'dashicons-lock';
-                                        $badge_label = 'Locked';
-                                    } elseif ($enabled) {
-                                        $badge_class = 'sl-security-status-enabled';
-                                        $badge_icon = 'dashicons-yes-alt';
-                                        $badge_label = 'Enabled';
-                                    } else {
-                                        $badge_class = 'sl-security-status-disabled';
-                                        $badge_icon = 'dashicons-marker';
-                                        $badge_label = 'Disabled';
-                                    }
-                                    ?>
-
-                                    <div class="sl-security-status-cell">
-                                        <span class="sl-security-status-badge <?php echo esc_attr($badge_class); ?>">
-                                            <span class="dashicons <?php echo esc_attr($badge_icon); ?>"></span>
-                                            <?php echo esc_html($badge_label); ?>
-                                        </span>
-
-                                        <?php if (!$locked) : ?>
-                                            <label class="sl-security-status-toggle">
-                                                <input
-                                                    type="checkbox"
-                                                    name="sl_security_settings[<?php echo esc_attr($key); ?>]"
-                                                    value="1"
-                                                    <?php checked($enabled); ?>
-                                                    <?php disabled($passkey_locked); ?>
-                                                >
-                                                <?php echo $enabled ? 'Disable' : 'Enable'; ?>
-                                            </label>
-                                        <?php endif; ?>
-
+                                <td>
+                                    <?php if ($is_locked_row) : ?>
+                                        <span class="sl-security-toggle-placeholder" aria-hidden="true">—</span>
                                         <?php if ($passkey_locked) : ?>
-                                            <p class="description">Locked until the usernameless passkey test passes.</p>
+                                            <span class="screen-reader-text">Locked until passkey test passes</span>
                                         <?php endif; ?>
-                                    </div>
+                                    <?php else : ?>
+                                        <label class="sl-security-toggle">
+                                            <input
+                                                type="checkbox"
+                                                name="sl_security_settings[<?php echo esc_attr($key); ?>]"
+                                                value="1"
+                                                <?php checked($enabled); ?>
+                                            >
+                                            <span class="sl-security-toggle-track" aria-hidden="true">
+                                                <span class="sl-security-toggle-thumb"></span>
+                                            </span>
+                                            <span class="screen-reader-text"><?php echo esc_html($control['label']); ?></span>
+                                        </label>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td>
                                     <?php echo esc_html($control['description']); ?>
+                                    <?php if ($passkey_locked) : ?>
+                                        <p class="description">Run the passkey test above to unlock.</p>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
