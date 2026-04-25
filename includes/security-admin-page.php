@@ -799,7 +799,6 @@ function sl_security_render_fim_page() {
         </div>
 
         <?php sl_security_render_notice(); ?>
-        <?php sl_security_render_last_result_banner($fim_status, $baseline_exists, $fim_enabled); ?>
 
         <div class="sl-security-description">
             <p>
@@ -1490,35 +1489,6 @@ function sl_security_render_settings_page() {
         <?php endif; ?>
     </div>
     <?php
-}
-
-function sl_security_render_last_result_banner($status, $baseline_exists, $fim_enabled = true) {
-    if (!$fim_enabled) {
-        echo '<div class="notice notice-info"><p><strong>Status:</strong> File Integrity Monitoring is disabled in Settings.</p></div>';
-        return;
-    }
-
-    if (!$baseline_exists) {
-        echo '<div class="notice notice-warning"><p><strong>Status:</strong> No trusted baseline exists. Create one before relying on integrity checks.</p></div>';
-        return;
-    }
-
-    if (!$status || empty($status['status'])) {
-        echo '<div class="notice notice-info"><p><strong>Status:</strong> No integrity check has run yet.</p></div>';
-        return;
-    }
-
-    if ($status['status'] === 'passed' || $status['status'] === 'baseline_created') {
-        echo '<div class="notice notice-success"><p><strong>Status:</strong> ' . esc_html($status['message']) . '</p></div>';
-        return;
-    }
-
-    if ($status['status'] === 'changes_detected') {
-        echo '<div class="notice notice-error"><p><strong>Status:</strong> File changes detected. Review the change summary before trusting the current file state.</p></div>';
-        return;
-    }
-
-    echo '<div class="notice notice-warning"><p><strong>Status:</strong> ' . esc_html($status['message'] ?? 'Review file integrity status.') . '</p></div>';
 }
 
 function sl_security_render_status_card($title, $value, $description, $accent_color, $icon = '') {
