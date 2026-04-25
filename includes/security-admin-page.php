@@ -265,6 +265,12 @@ function sl_security_get_score_breakdown($fim_enabled, $sem_enabled, $baseline_e
 
 function sl_security_render_score_breakdown(array $breakdown) {
     echo '<div class="sl-security-score-breakdown">';
+    echo '<details class="sl-security-expandable-table">';
+    echo '<summary class="sl-security-table-toggle" role="button" aria-expanded="false">';
+    echo '<span>Score breakdown</span>';
+    echo '<span class="dashicons dashicons-arrow-right-alt2"></span>';
+    echo '</summary>';
+    echo '<div class="sl-security-table-content">';
     echo '<strong>Score breakdown</strong>';
     echo '<ul>';
 
@@ -279,6 +285,8 @@ function sl_security_render_score_breakdown(array $breakdown) {
     }
 
     echo '</ul>';
+    echo '</div>';
+    echo '</details>';
     echo '</div>';
 }
 
@@ -1546,12 +1554,13 @@ function sl_security_render_target_groups() {
 
     ?>
     <div class="sl-security-expandable-table">
-        <button type="button" class="sl-security-table-toggle" aria-expanded="false" onclick="slSecurityToggleTable(this)">
-            <span>Monitored Target Groups (<?php echo count($groups); ?> groups)</span>
-            <span class="dashicons dashicons-arrow-right-alt2"></span>
-        </button>
-        <div class="sl-security-table-content">
-            <table class="widefat striped">
+        <details>
+            <summary class="sl-security-table-toggle">
+                <span>Monitored Target Groups (<?php echo count($groups); ?> groups)</span>
+                <span class="dashicons dashicons-arrow-right-alt2"></span>
+            </summary>
+            <div class="sl-security-table-content">
+                <table class="widefat striped">
                 <thead>
                     <tr>
                         <th>Group</th>
@@ -1594,12 +1603,13 @@ function sl_security_render_excluded_paths() {
     </p>
 
     <div class="sl-security-expandable-table">
-        <button type="button" class="sl-security-table-toggle" aria-expanded="false" onclick="slSecurityToggleTable(this)">
-            <span>Excluded Paths (<?php echo count($excluded_paths); ?> paths)</span>
-            <span class="dashicons dashicons-arrow-right-alt2"></span>
-        </button>
-        <div class="sl-security-table-content">
-            <table class="widefat striped">
+        <details>
+            <summary class="sl-security-table-toggle">
+                <span>Excluded Paths (<?php echo count($excluded_paths); ?> paths)</span>
+                <span class="dashicons dashicons-arrow-right-alt2"></span>
+            </summary>
+            <div class="sl-security-table-content">
+                <table class="widefat striped">
                 <thead>
                     <tr>
                         <th>Path</th>
