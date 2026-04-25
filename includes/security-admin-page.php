@@ -1471,6 +1471,8 @@ function sl_security_render_target_groups() {
     <?php
 }
 
+
+// Test comment
 function sl_security_render_excluded_paths() {
     $excluded_paths = function_exists('sl_fim_get_excluded_paths') ? sl_fim_get_excluded_paths() : [];
 
