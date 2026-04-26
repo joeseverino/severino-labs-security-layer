@@ -58,10 +58,50 @@ class Joe_Passkey_Login {
 
         $this->success_redirect = admin_url();
 
+        add_action('login_enqueue_scripts', [$this, 'remove_provider_login_assets'], 1);
         add_action('login_enqueue_scripts', [$this, 'enqueue_assets'], 999);
+
         add_filter('login_headerurl', [$this, 'header_url']);
         add_filter('login_headertext', [$this, 'header_text']);
         add_action('login_footer', [$this, 'render_custom_login'], 999);
+    }
+
+    public function remove_provider_login_assets() {
+        global $wp_scripts, $wp_styles;
+
+        if ($wp_scripts instanceof WP_Scripts) {
+            foreach ($wp_scripts->registered as $handle => $script) {
+                $src = isset($script->src) ? (string) $script->src : '';
+
+                if (
+                    stripos($handle, 'webauthn') !== false ||
+                    stripos($handle, 'wwa') !== false ||
+                    stripos($src, 'webauthn') !== false ||
+                    stripos($src, 'wp-webauthn') !== false ||
+                    stripos($src, 'wwa') !== false
+                ) {
+                    wp_dequeue_script($handle);
+                    wp_deregister_script($handle);
+                }
+            }
+        }
+
+        if ($wp_styles instanceof WP_Styles) {
+            foreach ($wp_styles->registered as $handle => $style) {
+                $src = isset($style->src) ? (string) $style->src : '';
+
+                if (
+                    stripos($handle, 'webauthn') !== false ||
+                    stripos($handle, 'wwa') !== false ||
+                    stripos($src, 'webauthn') !== false ||
+                    stripos($src, 'wp-webauthn') !== false ||
+                    stripos($src, 'wwa') !== false
+                ) {
+                    wp_dequeue_style($handle);
+                    wp_deregister_style($handle);
+                }
+            }
+        }
     }
 
     public function header_url() {
