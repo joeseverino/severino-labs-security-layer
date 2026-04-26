@@ -28,13 +28,6 @@
         return window.btoa(binary);
     }
 
-    function base64ToBase64url(input) {
-        return input
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    }
-
     function setStatus(message, type) {
         var el = document.getElementById('jp-status');
 
@@ -144,8 +137,7 @@
             setStatus('Waiting for passkey prompt...', '');
 
             var credential = await navigator.credentials.get({
-                publicKey: options,
-                mediation: 'optional'
+                publicKey: options
             });
 
             if (!credential) {
@@ -155,13 +147,13 @@
             var payload = {
                 id: credential.id,
                 type: credential.type,
-                rawId: base64ToBase64url(arrayBufferToBase64(credential.rawId)),
+                rawId: arrayBufferToBase64(credential.rawId),
                 response: {
-                    authenticatorData: base64ToBase64url(arrayBufferToBase64(credential.response.authenticatorData)),
-                    clientDataJSON: base64ToBase64url(arrayBufferToBase64(credential.response.clientDataJSON)),
-                    signature: base64ToBase64url(arrayBufferToBase64(credential.response.signature)),
+                    authenticatorData: arrayBufferToBase64(credential.response.authenticatorData),
+                    clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
+                    signature: arrayBufferToBase64(credential.response.signature),
                     userHandle: credential.response.userHandle
-                        ? base64ToBase64url(arrayBufferToBase64(credential.response.userHandle))
+                        ? arrayBufferToBase64(credential.response.userHandle)
                         : null
                 }
             };
