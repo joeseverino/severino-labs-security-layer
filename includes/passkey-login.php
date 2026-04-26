@@ -58,8 +58,8 @@ class Joe_Passkey_Login {
 
         $this->success_redirect = admin_url();
 
-        add_action('login_enqueue_scripts', [$this, 'remove_provider_login_assets'], 1);
-        add_action('login_enqueue_scripts', [$this, 'enqueue_assets'], 999);
+        add_action('login_enqueue_scripts', [$this, 'remove_provider_login_assets'], 999);
+        add_action('login_enqueue_scripts', [$this, 'enqueue_assets'], 1000);
 
         add_filter('login_headerurl', [$this, 'header_url']);
         add_filter('login_headertext', [$this, 'header_text']);
@@ -69,17 +69,31 @@ class Joe_Passkey_Login {
     public function remove_provider_login_assets() {
         global $wp_scripts, $wp_styles;
 
+        $blocked_handles = [
+            'webauthn',
+            'wp-webauthn',
+            'wwa',
+            'wwa-login',
+            'wwa-auth',
+            'wpwebauthn',
+            'wpwebauthn-login',
+        ];
+
         if ($wp_scripts instanceof WP_Scripts) {
+            foreach ($wp_scripts->queue as $handle) {
+                $script = isset($wp_scripts->registered[$handle]) ? $wp_scripts->registered[$handle] : null;
+                $src = $script && isset($script->src) ? (string) $script->src : '';
+
+                if ($this->asset_matches_provider($handle, $src, $blocked_handles)) {
+                    wp_dequeue_script($handle);
+                    wp_deregister_script($handle);
+                }
+            }
+
             foreach ($wp_scripts->registered as $handle => $script) {
                 $src = isset($script->src) ? (string) $script->src : '';
 
-                if (
-                    stripos($handle, 'webauthn') !== false ||
-                    stripos($handle, 'wwa') !== false ||
-                    stripos($src, 'webauthn') !== false ||
-                    stripos($src, 'wp-webauthn') !== false ||
-                    stripos($src, 'wwa') !== false
-                ) {
+                if ($this->asset_matches_provider($handle, $src, $blocked_handles)) {
                     wp_dequeue_script($handle);
                     wp_deregister_script($handle);
                 }
@@ -87,21 +101,35 @@ class Joe_Passkey_Login {
         }
 
         if ($wp_styles instanceof WP_Styles) {
+            foreach ($wp_styles->queue as $handle) {
+                $style = isset($wp_styles->registered[$handle]) ? $wp_styles->registered[$handle] : null;
+                $src = $style && isset($style->src) ? (string) $style->src : '';
+
+                if ($this->asset_matches_provider($handle, $src, $blocked_handles)) {
+                    wp_dequeue_style($handle);
+                    wp_deregister_style($handle);
+                }
+            }
+
             foreach ($wp_styles->registered as $handle => $style) {
                 $src = isset($style->src) ? (string) $style->src : '';
 
-                if (
-                    stripos($handle, 'webauthn') !== false ||
-                    stripos($handle, 'wwa') !== false ||
-                    stripos($src, 'webauthn') !== false ||
-                    stripos($src, 'wp-webauthn') !== false ||
-                    stripos($src, 'wwa') !== false
-                ) {
+                if ($this->asset_matches_provider($handle, $src, $blocked_handles)) {
                     wp_dequeue_style($handle);
                     wp_deregister_style($handle);
                 }
             }
         }
+    }
+
+    private function asset_matches_provider($handle, $src, $blocked_handles) {
+        foreach ($blocked_handles as $needle) {
+            if (stripos($handle, $needle) !== false || stripos($src, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function header_url() {
