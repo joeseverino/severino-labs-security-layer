@@ -1,4 +1,6 @@
 (function () {
+    var passkeyRequestActive = false;
+
     function base64urlToBase64(input) {
         input = input.replace(/=/g, '').replace(/-/g, '+').replace(/_/g, '/');
 
@@ -26,6 +28,13 @@
         return window.btoa(binary);
     }
 
+    function base64ToBase64url(input) {
+        return input
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
     function setStatus(message, type) {
         var el = document.getElementById('jp-status');
 
@@ -37,14 +46,35 @@
         el.className = 'jp-status' + (type ? ' jp-' + type : '');
     }
 
-    async function startPasskeyLogin() {
-        var button = document.getElementById('jp-passkey-btn');
+    function getPasskeyButton() {
+        return document.getElementById('jp-passkey-btn');
+    }
+
+    function setButtonLoading(isLoading) {
+        var button = getPasskeyButton();
 
         if (!button) {
             return;
         }
 
-        button.disabled = true;
+        button.disabled = isLoading;
+        button.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    }
+
+    async function startPasskeyLogin() {
+        if (passkeyRequestActive) {
+            setStatus('A passkey request is already pending. Finish or cancel it first.', 'error');
+            return;
+        }
+
+        var button = getPasskeyButton();
+
+        if (!button) {
+            return;
+        }
+
+        passkeyRequestActive = true;
+        setButtonLoading(true);
         setStatus('Starting passkey authentication...', '');
 
         try {
@@ -52,11 +82,20 @@
                 throw new Error('Passkey login settings were not loaded.');
             }
 
+            if (
+                window.PublicKeyCredential === undefined ||
+                navigator.credentials === undefined ||
+                typeof navigator.credentials.get !== 'function'
+            ) {
+                throw new Error('This browser does not support passkeys.');
+            }
+
             var startUrl = slPasskeyLogin.ajaxUrl + '?action=wwa_auth_start&type=auth&usernameless=true';
 
             var startResponse = await fetch(startUrl, {
                 method: 'GET',
                 credentials: 'same-origin',
+                cache: 'no-store',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -105,7 +144,8 @@
             setStatus('Waiting for passkey prompt...', '');
 
             var credential = await navigator.credentials.get({
-                publicKey: options
+                publicKey: options,
+                mediation: 'optional'
             });
 
             if (!credential) {
@@ -115,13 +155,13 @@
             var payload = {
                 id: credential.id,
                 type: credential.type,
-                rawId: arrayBufferToBase64(credential.rawId),
+                rawId: base64ToBase64url(arrayBufferToBase64(credential.rawId)),
                 response: {
-                    authenticatorData: arrayBufferToBase64(credential.response.authenticatorData),
-                    clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
-                    signature: arrayBufferToBase64(credential.response.signature),
+                    authenticatorData: base64ToBase64url(arrayBufferToBase64(credential.response.authenticatorData)),
+                    clientDataJSON: base64ToBase64url(arrayBufferToBase64(credential.response.clientDataJSON)),
+                    signature: base64ToBase64url(arrayBufferToBase64(credential.response.signature)),
                     userHandle: credential.response.userHandle
-                        ? arrayBufferToBase64(credential.response.userHandle)
+                        ? base64ToBase64url(arrayBufferToBase64(credential.response.userHandle))
                         : null
                 }
             };
@@ -131,13 +171,14 @@
             formData.append('data', window.btoa(JSON.stringify(payload)));
             formData.append('type', 'auth');
             formData.append('remember', 'false');
-            formData.append('clientid', clientID);
+            formData.append('clientid', clientID || '');
 
             setStatus('Verifying passkey...', '');
 
             var verifyResponse = await fetch(slPasskeyLogin.ajaxUrl + '?action=wwa_auth', {
                 method: 'POST',
                 credentials: 'same-origin',
+                cache: 'no-store',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                     'X-Requested-With': 'XMLHttpRequest'
@@ -161,14 +202,33 @@
                 ? error.message
                 : 'Passkey authentication failed.';
 
+            if (
+                error &&
+                (
+                    error.name === 'AbortError' ||
+                    error.name === 'NotAllowedError'
+                )
+            ) {
+                message = 'Passkey authentication was canceled or timed out.';
+            }
+
+            if (
+                error &&
+                error.message &&
+                error.message.toLowerCase().indexOf('pending') !== -1
+            ) {
+                message = 'A passkey request is already pending. Close the Windows Hello prompt or restart the browser.';
+            }
+
             setStatus(message, 'error');
         } finally {
-            button.disabled = false;
+            passkeyRequestActive = false;
+            setButtonLoading(false);
         }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        var button = document.getElementById('jp-passkey-btn');
+        var button = getPasskeyButton();
 
         if (!button) {
             return;
@@ -186,6 +246,8 @@
 
         button.addEventListener('click', function (e) {
             e.preventDefault();
+            e.stopPropagation();
+
             startPasskeyLogin();
         });
     });
