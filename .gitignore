@@ -27,6 +27,10 @@ wp-content/debug.log
 # Composer local cache/artifacts
 .composer-cache/
 
+# Python (the docs/ installer is plain stdlib but generates these)
+__pycache__/
+*.pyc
+
 # Environment / secrets
 .env
 .env.*
