@@ -80,6 +80,23 @@ function sl_security_configure_smtp($phpmailer) {
 }
 add_action('phpmailer_init', 'sl_security_configure_smtp');
 
+/**
+ * After each scheduled FIM check, send any enabled daily digest emails.
+ * Priority 20 ensures this runs after sl_fim_run_check (priority 10 default).
+ */
+add_action('sl_fim_daily_check', 'sl_security_after_fim_daily_emails', 20);
+function sl_security_after_fim_daily_emails() {
+    if (sl_security_smtp_alert_enabled('alert_daily_fim_report')
+        && function_exists('sl_security_send_fim_daily_report')) {
+        sl_security_send_fim_daily_report();
+    }
+
+    if (sl_security_smtp_alert_enabled('alert_daily_dashboard')
+        && function_exists('sl_security_send_daily_dashboard_email')) {
+        sl_security_send_daily_dashboard_email();
+    }
+}
+
 function sl_security_activate() {
     if (function_exists('sl_security_get_default_settings')) {
         $existing_settings = get_option('sl_security_settings', null);

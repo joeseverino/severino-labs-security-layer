@@ -1527,7 +1527,7 @@ function sl_security_render_settings_page() {
         ?>
         <hr style="margin:32px 0;">
         <h2><span class="dashicons dashicons-email-alt"></span> Email &amp; SMTP Configuration</h2>
-        <p>Configure outbound email delivery for WordPress and Severino Labs alerts. These settings replace any <code>SL_SMTP_*</code> constants previously defined in <code>wp-config.php</code>.</p>
+        <p>Configure outbound email delivery for all WordPress mail and Severino Labs security alerts. Once saved, these settings take over from whatever SMTP configuration WordPress uses by default.</p>
 
         <form method="post">
             <?php wp_nonce_field('sl_security_action'); ?>
@@ -1614,7 +1614,7 @@ function sl_security_render_settings_page() {
                 </tbody>
             </table>
 
-            <h3>Alert Settings</h3>
+            <h3>Alert Recipient</h3>
             <table class="widefat striped sl-security-table">
                 <tbody>
                     <tr>
@@ -1625,37 +1625,73 @@ function sl_security_render_settings_page() {
                             <input type="email" id="sl_smtp_alert_email" name="sl_security_smtp[alert_email]"
                                 value="<?php echo esc_attr($smtp['alert_email']); ?>"
                                 class="regular-text" placeholder="<?php echo esc_attr(get_option('admin_email')); ?>">
-                            <p class="description">Where security alerts are sent. Defaults to the WordPress admin email if left blank.</p>
+                            <p class="description">Where all security alerts and digest emails are sent. Defaults to the WordPress admin email if left blank.</p>
                         </td>
                     </tr>
+                </tbody>
+            </table>
+
+            <h3>Immediate Alerts</h3>
+            <p>These emails fire in real time when an event is detected.</p>
+            <table class="widefat striped sl-security-table">
+                <tbody>
                     <tr>
-                        <th scope="row" class="sl-security-settings-label">File Integrity Alerts</th>
+                        <th scope="row" class="sl-security-settings-label">File Change Alert</th>
                         <td>
                             <label>
                                 <input type="checkbox" name="sl_security_smtp[alert_fim_changes]" value="1"
                                     <?php checked(!empty($smtp['alert_fim_changes'])); ?>>
-                                Email me when FIM detects file changes
+                                Email me immediately when FIM detects file changes
                             </label>
-                            <p class="description">Sends an HTML email listing added, removed, and modified files whenever a FIM check detects changes.</p>
+                            <p class="description">Sends a detailed HTML email listing every added, removed, and modified file as soon as a FIM check finds a discrepancy.</p>
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row" class="sl-security-settings-label">Security Event Spike Alerts</th>
+                        <th scope="row" class="sl-security-settings-label">Security Event Spike</th>
                         <td>
                             <label>
                                 <input type="checkbox" name="sl_security_smtp[alert_sem_spike]" value="1"
                                     <?php checked(!empty($smtp['alert_sem_spike'])); ?>>
-                                Email me on unusual security event volume
+                                Email me when security event volume spikes
                             </label>
-                            <p class="description">Triggers an alert when the number of security events logged in a single hour exceeds the threshold below.</p>
+                            <p class="description">Triggers when events logged in a single hour exceed the threshold below.</p>
                             <p style="margin-top:10px;">
-                                <label for="sl_smtp_sem_threshold"><strong>Event spike threshold:</strong></label>
+                                <label for="sl_smtp_sem_threshold"><strong>Spike threshold:</strong></label>
                                 <input type="number" id="sl_smtp_sem_threshold"
                                     name="sl_security_smtp[alert_sem_spike_threshold]"
                                     value="<?php echo esc_attr($smtp['alert_sem_spike_threshold']); ?>"
                                     class="small-text" min="1" style="margin-left:6px;">
-                                <span class="description">events per hour</span>
+                                <span class="description">events / hour</span>
                             </p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Daily Digest Emails</h3>
+            <p>These emails are sent once per day at the time of the scheduled FIM check. Requires <strong>File Integrity Monitoring</strong> and <strong>Automated FIM Scheduling</strong> to be enabled in Security Controls.</p>
+            <table class="widefat striped sl-security-table">
+                <tbody>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">Daily FIM Report</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="sl_security_smtp[alert_daily_fim_report]" value="1"
+                                    <?php checked(!empty($smtp['alert_daily_fim_report'])); ?>>
+                                Send a file integrity check summary after every scheduled scan
+                            </label>
+                            <p class="description">Delivers a clean result email after each automated FIM check — whether files passed or changes were found. Includes file counts, status, and any change details.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">Daily Security Dashboard</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="sl_security_smtp[alert_daily_dashboard]" value="1"
+                                    <?php checked(!empty($smtp['alert_daily_dashboard'])); ?>>
+                                Send a daily security overview with key insights
+                            </label>
+                            <p class="description">A polished security snapshot covering your security score, FIM status, recent security events, and (optionally) contact form activity — sent daily at FIM check time.</p>
                         </td>
                     </tr>
                 </tbody>
@@ -1769,6 +1805,166 @@ function sl_security_build_notification_email($title, $preheader, array $section
 </table>
 </body>
 </html>';
+}
+
+/**
+ * Send a daily FIM check summary email (pass or fail).
+ * Hooked into sl_fim_daily_check at priority 20, after sl_fim_run_check().
+ */
+function sl_security_send_fim_daily_report() {
+    $to = sl_security_get_alert_email();
+
+    if (!is_email($to)) {
+        return;
+    }
+
+    $site_name  = get_bloginfo('name');
+    $fim_status = function_exists('sl_fim_get_status') ? sl_fim_get_status() : null;
+    $next_check = wp_next_scheduled('sl_fim_daily_check');
+    $checked_at = sl_security_format_datetime(current_time('mysql'));
+
+    $status_label = $fim_status ? sl_security_get_last_check_label($fim_status) : 'Unknown';
+    $is_clean     = $fim_status && ($fim_status['status'] ?? '') === 'passed';
+
+    $subject = sprintf('[%s] FIM Report — %s — %s', $site_name, $status_label, wp_date('n/j/y'));
+    $preheader = $is_clean ? 'All monitored files passed. No changes detected.' : 'File changes were detected. Review required.';
+
+    $total_changes = (int) ($fim_status['added_count'] ?? 0)
+        + (int) ($fim_status['removed_count'] ?? 0)
+        + (int) ($fim_status['modified_count'] ?? 0);
+
+    $summary_rows = [
+        ['label' => 'Result',        'value' => $status_label],
+        ['label' => 'Checked At',    'value' => $checked_at],
+        ['label' => 'Files Changed', 'value' => (string) $total_changes],
+    ];
+
+    if ($total_changes > 0) {
+        if (!empty($fim_status['added_count'])) {
+            $summary_rows[] = ['label' => 'Added',    'value' => (string) (int) $fim_status['added_count']];
+        }
+        if (!empty($fim_status['removed_count'])) {
+            $summary_rows[] = ['label' => 'Removed',  'value' => (string) (int) $fim_status['removed_count']];
+        }
+        if (!empty($fim_status['modified_count'])) {
+            $summary_rows[] = ['label' => 'Modified', 'value' => (string) (int) $fim_status['modified_count']];
+        }
+    }
+
+    if ($next_check) {
+        $summary_rows[] = ['label' => 'Next Check', 'value' => wp_date('n/j/y g:i A', $next_check)];
+    }
+
+    $sections = [['heading' => 'Check Summary', 'rows' => $summary_rows]];
+
+    if (!empty($fim_status['added'])) {
+        $sections[] = ['type' => 'file_list', 'heading' => 'Added (' . count($fim_status['added']) . ')', 'prefix' => '+', 'files' => $fim_status['added']];
+    }
+    if (!empty($fim_status['removed'])) {
+        $sections[] = ['type' => 'file_list', 'heading' => 'Removed (' . count($fim_status['removed']) . ')', 'prefix' => '-', 'files' => $fim_status['removed']];
+    }
+    if (!empty($fim_status['modified'])) {
+        $sections[] = ['type' => 'file_list', 'heading' => 'Modified (' . count($fim_status['modified']) . ')', 'prefix' => '~', 'files' => $fim_status['modified']];
+    }
+
+    $body = sl_security_build_notification_email(
+        'File Integrity Report',
+        $preheader,
+        $sections,
+        admin_url('admin.php?page=' . SL_SECURITY_FIM_SLUG),
+        'View File Integrity'
+    );
+
+    wp_mail($to, $subject, $body, ['Content-Type: text/html; charset=UTF-8']);
+}
+
+/**
+ * Send a daily security dashboard email with key site insights.
+ * Hooked into sl_fim_daily_check at priority 30 (after FIM report at 20).
+ */
+function sl_security_send_daily_dashboard_email() {
+    $to = sl_security_get_alert_email();
+
+    if (!is_email($to)) {
+        return;
+    }
+
+    $site_name      = get_bloginfo('name');
+    $fim_enabled    = sl_security_setting_enabled('enable_fim');
+    $sem_enabled    = sl_security_setting_enabled('enable_sem');
+    $baseline_exists = file_exists(SL_FIM_BASELINE_FILE);
+    $fim_status     = function_exists('sl_fim_get_status') ? sl_fim_get_status() : null;
+    $next_check     = wp_next_scheduled('sl_fim_daily_check');
+    $events_today   = function_exists('sl_sem_count_events_today') ? sl_sem_count_events_today() : 0;
+    $total_events   = function_exists('sl_sem_count_total_events') ? sl_sem_count_total_events() : 0;
+    $recent_events  = function_exists('sl_sem_get_recent_events') ? sl_sem_get_recent_events(5) : [];
+    $score          = sl_security_calculate_security_score($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today);
+    $status_info    = sl_security_get_overall_security_status($score);
+
+    $subject   = sprintf('[%s] Daily Security Dashboard — %s', $site_name, wp_date('n/j/y'));
+    $preheader = sprintf('Security score %d%%. %d event%s today. %s', $score, $events_today, $events_today === 1 ? '' : 's', $status_info['status']);
+
+    $sections = [];
+
+    // Overview
+    $overview_rows = [
+        ['label' => 'Security Score',    'value' => $score . '%  —  ' . $status_info['status']],
+        ['label' => 'Date',              'value' => wp_date('l, F j, Y')],
+        ['label' => 'File Integrity',    'value' => $fim_enabled ? sl_security_get_last_check_label($fim_status) : 'Disabled'],
+        ['label' => 'Events Today',      'value' => number_format($events_today)],
+        ['label' => 'Events All-Time',   'value' => number_format($total_events)],
+    ];
+    if ($next_check) {
+        $overview_rows[] = ['label' => 'Next FIM Check', 'value' => wp_date('n/j/y g:i A', $next_check)];
+    }
+    $sections[] = ['heading' => 'Security Overview', 'rows' => $overview_rows];
+
+    // FIM detail (when changes exist)
+    if ($fim_enabled && $fim_status && ($fim_status['status'] ?? '') === 'changes_detected') {
+        $total_changes = (int) ($fim_status['added_count'] ?? 0)
+            + (int) ($fim_status['removed_count'] ?? 0)
+            + (int) ($fim_status['modified_count'] ?? 0);
+        $fim_rows = [
+            ['label' => 'Changes Found', 'value' => (string) $total_changes . ' file' . ($total_changes === 1 ? '' : 's')],
+        ];
+        if (!empty($fim_status['added_count']))    $fim_rows[] = ['label' => 'Added',    'value' => (string) (int) $fim_status['added_count']];
+        if (!empty($fim_status['removed_count']))  $fim_rows[] = ['label' => 'Removed',  'value' => (string) (int) $fim_status['removed_count']];
+        if (!empty($fim_status['modified_count'])) $fim_rows[] = ['label' => 'Modified', 'value' => (string) (int) $fim_status['modified_count']];
+        $sections[] = ['heading' => 'File Integrity Changes', 'rows' => $fim_rows];
+    }
+
+    // Recent security events
+    if ($sem_enabled && !empty($recent_events)) {
+        $event_rows = [];
+        foreach ($recent_events as $event) {
+            $event_rows[] = [
+                'label' => sl_security_format_datetime($event['timestamp'] ?? ''),
+                'value' => esc_html(($event['event_type'] ?? 'Unknown') . ($event['source_ip'] ? '  ·  ' . $event['source_ip'] : '')),
+            ];
+        }
+        $sections[] = ['heading' => 'Recent Security Events', 'rows' => $event_rows];
+    }
+
+    /**
+     * Allow companion plugins to append additional sections to the daily dashboard email.
+     *
+     * Each section must be an array accepted by sl_security_build_notification_email():
+     *   ['heading' => 'Title', 'rows' => [['label' => '', 'value' => ''], ...]]
+     *   ['type' => 'file_list', 'heading' => '', 'prefix' => '+', 'files' => [...]]
+     *
+     * @param array $sections Existing dashboard sections.
+     */
+    $sections = apply_filters('sl_security_daily_dashboard_sections', $sections);
+
+    $body = sl_security_build_notification_email(
+        'Daily Security Dashboard',
+        $preheader,
+        $sections,
+        admin_url('admin.php?page=' . SL_SECURITY_MENU_SLUG),
+        'Open Dashboard'
+    );
+
+    wp_mail($to, $subject, $body, ['Content-Type: text/html; charset=UTF-8']);
 }
 
 function sl_security_render_status_card($title, $value, $description, $accent_color, $icon = '') {

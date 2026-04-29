@@ -58,17 +58,21 @@ function sl_security_update_branding_settings($branding_settings) {
 
 function sl_security_get_default_smtp_settings() {
     return [
-        'smtp_host'               => '',
-        'smtp_port'               => '587',
-        'smtp_user'               => '',
-        'smtp_pass'               => '',
-        'smtp_from'               => '',
-        'smtp_from_name'          => '',
-        'smtp_debug'              => false,
-        'alert_email'             => '',
-        'alert_fim_changes'       => true,
-        'alert_sem_spike'         => false,
-        'alert_sem_spike_threshold' => 100,
+        'smtp_host'                    => '',
+        'smtp_port'                    => '587',
+        'smtp_user'                    => '',
+        'smtp_pass'                    => '',
+        'smtp_from'                    => '',
+        'smtp_from_name'               => '',
+        'smtp_debug'                   => false,
+        'alert_email'                  => '',
+        // Immediate alerts
+        'alert_fim_changes'            => true,
+        'alert_sem_spike'              => false,
+        'alert_sem_spike_threshold'    => 100,
+        // Daily digest emails
+        'alert_daily_fim_report' => false,
+        'alert_daily_dashboard'  => false,
     ];
 }
 
@@ -113,9 +117,14 @@ function sl_security_update_smtp_settings($input) {
         ? sanitize_text_field($input['smtp_pass'])
         : $existing['smtp_pass'];
 
+    // Immediate alerts
     $clean['alert_fim_changes']         = !empty($input['alert_fim_changes']);
     $clean['alert_sem_spike']           = !empty($input['alert_sem_spike']);
     $clean['alert_sem_spike_threshold'] = absint($input['alert_sem_spike_threshold'] ?? 100) ?: 100;
+
+    // Daily digest emails
+    $clean['alert_daily_fim_report'] = !empty($input['alert_daily_fim_report']);
+    $clean['alert_daily_dashboard']  = !empty($input['alert_daily_dashboard']);
 
     update_option('sl_security_smtp_settings', $clean, false);
     return $clean;
