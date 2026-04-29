@@ -1691,7 +1691,7 @@ function sl_security_render_settings_page() {
                                     <?php checked(!empty($smtp['alert_daily_dashboard'])); ?>>
                                 Send a daily security overview with key insights
                             </label>
-                            <p class="description">A polished security snapshot covering your security score, FIM status, recent security events, and (optionally) contact form activity — sent daily at FIM check time.</p>
+                            <p class="description">A polished daily security snapshot covering your security score, FIM status, and recent security events — sent once per day at the scheduled FIM check time.</p>
                         </td>
                     </tr>
                 </tbody>
