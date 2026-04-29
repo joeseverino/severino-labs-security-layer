@@ -47,6 +47,39 @@ foreach ([
 register_activation_hook(__FILE__, 'sl_security_activate');
 register_deactivation_hook(__FILE__, 'sl_security_deactivate');
 
+/**
+ * Configure WordPress PHPMailer to use SMTP credentials stored in plugin settings.
+ * This hook runs for all wp_mail() calls, including those from Severino Labs Admin Modules.
+ */
+function sl_security_configure_smtp($phpmailer) {
+    $smtp = sl_security_get_smtp_settings();
+
+    if (empty($smtp['smtp_host']) || empty($smtp['smtp_user']) || empty($smtp['smtp_pass'])) {
+        return;
+    }
+
+    $phpmailer->isSMTP();
+    $phpmailer->Host       = $smtp['smtp_host'];
+    $phpmailer->Port       = (int) $smtp['smtp_port'];
+    $phpmailer->SMTPAuth   = true;
+    $phpmailer->Username   = $smtp['smtp_user'];
+    $phpmailer->Password   = $smtp['smtp_pass'];
+    $phpmailer->SMTPSecure = 'tls';
+
+    if (is_email($smtp['smtp_from'])) {
+        $phpmailer->From     = $smtp['smtp_from'];
+        $phpmailer->FromName = !empty($smtp['smtp_from_name']) ? $smtp['smtp_from_name'] : get_bloginfo('name');
+    }
+
+    if (!empty($smtp['smtp_debug'])) {
+        $phpmailer->SMTPDebug = 2;
+        $phpmailer->Debugoutput = function($str, $level) {
+            error_log('SLAM SMTP [' . $level . ']: ' . $str);
+        };
+    }
+}
+add_action('phpmailer_init', 'sl_security_configure_smtp');
+
 function sl_security_activate() {
     if (function_exists('sl_security_get_default_settings')) {
         $existing_settings = get_option('sl_security_settings', null);

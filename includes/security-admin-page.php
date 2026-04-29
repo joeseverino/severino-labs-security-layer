@@ -266,6 +266,14 @@ function sl_security_handle_admin_actions() {
         sl_security_set_passkey_usernameless_verified(false);
         sl_security_redirect_with_message('passkey_verification_reset', SL_SECURITY_SETTINGS_SLUG);
     }
+
+    if ($action === 'save_smtp_settings') {
+        $smtp_input = isset($_POST['sl_security_smtp']) && is_array($_POST['sl_security_smtp'])
+            ? wp_unslash($_POST['sl_security_smtp'])
+            : [];
+        sl_security_update_smtp_settings($smtp_input);
+        sl_security_redirect_with_message('smtp_settings_saved', SL_SECURITY_SETTINGS_SLUG);
+    }
 }
 add_action('admin_init', 'sl_security_handle_admin_actions');
 
@@ -1513,8 +1521,254 @@ function sl_security_render_settings_page() {
                 <span class="description">Run the test again before re-enabling passkey-only login.</span>
             </form>
         <?php endif; ?>
+
+        <?php
+        $smtp = sl_security_get_smtp_settings();
+        ?>
+        <hr style="margin:32px 0;">
+        <h2><span class="dashicons dashicons-email-alt"></span> Email &amp; SMTP Configuration</h2>
+        <p>Configure outbound email delivery for WordPress and Severino Labs alerts. These settings replace any <code>SL_SMTP_*</code> constants previously defined in <code>wp-config.php</code>.</p>
+
+        <form method="post">
+            <?php wp_nonce_field('sl_security_action'); ?>
+            <input type="hidden" name="sl_security_action" value="save_smtp_settings">
+
+            <h3>SMTP Relay</h3>
+            <table class="widefat striped sl-security-table">
+                <tbody>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_host">SMTP Host</label>
+                        </th>
+                        <td>
+                            <input type="text" id="sl_smtp_host" name="sl_security_smtp[smtp_host]"
+                                value="<?php echo esc_attr($smtp['smtp_host']); ?>"
+                                class="regular-text" placeholder="smtp-relay.brevo.com">
+                            <p class="description">Your SMTP relay server hostname.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_port">SMTP Port</label>
+                        </th>
+                        <td>
+                            <input type="number" id="sl_smtp_port" name="sl_security_smtp[smtp_port]"
+                                value="<?php echo esc_attr($smtp['smtp_port']); ?>"
+                                class="small-text" min="1" max="65535">
+                            <p class="description">Typically 587 (STARTTLS) or 465 (SSL).</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_user">SMTP Username</label>
+                        </th>
+                        <td>
+                            <input type="text" id="sl_smtp_user" name="sl_security_smtp[smtp_user]"
+                                value="<?php echo esc_attr($smtp['smtp_user']); ?>"
+                                class="regular-text" autocomplete="off">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_pass">SMTP Password</label>
+                        </th>
+                        <td>
+                            <input type="password" id="sl_smtp_pass" name="sl_security_smtp[smtp_pass]"
+                                value="" class="regular-text" autocomplete="new-password"
+                                placeholder="<?php echo !empty($smtp['smtp_pass']) ? '••••••••••••' : 'Enter password'; ?>">
+                            <p class="description">Leave blank to keep the current password.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_from">From Email</label>
+                        </th>
+                        <td>
+                            <input type="email" id="sl_smtp_from" name="sl_security_smtp[smtp_from]"
+                                value="<?php echo esc_attr($smtp['smtp_from']); ?>"
+                                class="regular-text" placeholder="noreply@yourdomain.com">
+                            <p class="description">The address emails appear to come from. Must be authorized on your relay.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_from_name">From Name</label>
+                        </th>
+                        <td>
+                            <input type="text" id="sl_smtp_from_name" name="sl_security_smtp[smtp_from_name]"
+                                value="<?php echo esc_attr($smtp['smtp_from_name']); ?>"
+                                class="regular-text" placeholder="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">SMTP Debug</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="sl_security_smtp[smtp_debug]" value="1"
+                                    <?php checked(!empty($smtp['smtp_debug'])); ?>>
+                                Enable SMTP debug output
+                            </label>
+                            <p class="description">Logs detailed SMTP handshake output to the PHP error log. Disable in production.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Alert Settings</h3>
+            <table class="widefat striped sl-security-table">
+                <tbody>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">
+                            <label for="sl_smtp_alert_email">Alert Email</label>
+                        </th>
+                        <td>
+                            <input type="email" id="sl_smtp_alert_email" name="sl_security_smtp[alert_email]"
+                                value="<?php echo esc_attr($smtp['alert_email']); ?>"
+                                class="regular-text" placeholder="<?php echo esc_attr(get_option('admin_email')); ?>">
+                            <p class="description">Where security alerts are sent. Defaults to the WordPress admin email if left blank.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">File Integrity Alerts</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="sl_security_smtp[alert_fim_changes]" value="1"
+                                    <?php checked(!empty($smtp['alert_fim_changes'])); ?>>
+                                Email me when FIM detects file changes
+                            </label>
+                            <p class="description">Sends an HTML email listing added, removed, and modified files whenever a FIM check detects changes.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="sl-security-settings-label">Security Event Spike Alerts</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="sl_security_smtp[alert_sem_spike]" value="1"
+                                    <?php checked(!empty($smtp['alert_sem_spike'])); ?>>
+                                Email me on unusual security event volume
+                            </label>
+                            <p class="description">Triggers an alert when the number of security events logged in a single hour exceeds the threshold below.</p>
+                            <p style="margin-top:10px;">
+                                <label for="sl_smtp_sem_threshold"><strong>Event spike threshold:</strong></label>
+                                <input type="number" id="sl_smtp_sem_threshold"
+                                    name="sl_security_smtp[alert_sem_spike_threshold]"
+                                    value="<?php echo esc_attr($smtp['alert_sem_spike_threshold']); ?>"
+                                    class="small-text" min="1" style="margin-left:6px;">
+                                <span class="description">events per hour</span>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <?php submit_button('Save Email Settings'); ?>
+        </form>
+
     </div>
     <?php
+}
+
+/**
+ * Build a clean, professional HTML notification email.
+ *
+ * @param string $title      Main heading shown in the email body.
+ * @param string $preheader  Short preview text (shown in email client previews).
+ * @param array  $sections   Each entry is one of:
+ *                           - Table section: ['heading' => 'Label Rows', 'rows' => [['label'=>'','value'=>''], ...]]
+ *                           - File list:     ['type'=>'file_list','heading'=>'Added (3)','prefix'=>'+','files'=>[...]]
+ * @param string $cta_url    Optional call-to-action button URL.
+ * @param string $cta_label  Optional button label.
+ * @return string            Full HTML email string.
+ */
+function sl_security_build_notification_email($title, $preheader, array $sections, $cta_url = '', $cta_label = 'View Dashboard') {
+    $site_name   = get_bloginfo('name');
+    $brand_color = '#008a20';
+    $dark        = '#1d2327';
+    $text_color  = '#3c3c3c';
+    $border      = '#e0e0e0';
+    $bg          = '#f6f6f6';
+    $year        = gmdate('Y');
+
+    $sections_html = '';
+
+    foreach ($sections as $section) {
+        if (isset($section['type']) && $section['type'] === 'file_list') {
+            $prefix      = $section['prefix'] ?? '';
+            $color_map   = ['+' => '#008a20', '-' => '#b32d2e', '~' => '#dba617'];
+            $item_color  = $color_map[$prefix] ?? $text_color;
+            $items_html  = '';
+            foreach ($section['files'] as $file) {
+                $items_html .= '<li style="font-family:monospace;font-size:12px;padding:3px 0;color:' . esc_attr($item_color) . ';">'
+                    . esc_html($prefix . ' ' . $file) . '</li>';
+            }
+            $sections_html .= '
+                    <tr><td style="padding:16px 0 4px;">
+                        <strong style="font-size:13px;color:' . esc_attr($dark) . ';">' . esc_html($section['heading'] ?? '') . '</strong>
+                        <ul style="margin:8px 0 0;padding:0 0 0 16px;">' . $items_html . '</ul>
+                    </td></tr>';
+        } else {
+            $rows_html = '';
+            foreach (($section['rows'] ?? []) as $row) {
+                $rows_html .= '
+                        <tr>
+                            <td style="padding:8px 12px;background:#f9f9f9;border:1px solid ' . $border . ';width:32%;font-weight:600;font-size:13px;color:' . esc_attr($dark) . ';">'
+                                . esc_html($row['label']) . '</td>
+                            <td style="padding:8px 12px;background:#fff;border:1px solid ' . $border . ';font-size:13px;color:' . esc_attr($text_color) . ';">'
+                                . wp_kses_post($row['value']) . '</td>
+                        </tr>';
+            }
+            $heading_html = '';
+            if (!empty($section['heading'])) {
+                $heading_html = '<p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#646970;margin:20px 0 6px 0;">'
+                    . esc_html($section['heading']) . '</p>';
+            }
+            $sections_html .= '
+                    <tr><td>
+                        ' . $heading_html . '
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">' . $rows_html . '</table>
+                    </td></tr>';
+        }
+    }
+
+    $cta_html = '';
+    if (!empty($cta_url)) {
+        $cta_html = '
+                    <tr><td style="padding:28px 0 8px;text-align:center;">
+                        <a href="' . esc_url($cta_url) . '"
+                           style="display:inline-block;background:' . $brand_color . ';color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:4px;">'
+                            . esc_html($cta_label) . '</a>
+                    </td></tr>';
+    }
+
+    return '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>' . esc_html($title) . '</title>
+</head>
+<body style="margin:0;padding:0;background:' . $bg . ';font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">
+<span style="display:none;max-height:0;overflow:hidden;">' . esc_html($preheader) . '&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</span>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' . $bg . ';padding:32px 16px;">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
+            <tr><td style="background:' . $dark . ';padding:22px 32px;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:' . $brand_color . ';">' . esc_html($site_name) . '</p>
+                <h1 style="margin:0;font-size:21px;font-weight:700;color:#fff;line-height:1.3;">' . esc_html($title) . '</h1>
+            </td></tr>
+            <tr><td style="padding:28px 32px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    ' . $sections_html . $cta_html . '
+                </table>
+            </td></tr>
+            <tr><td style="background:#f0f0f0;border-top:1px solid ' . $border . ';padding:14px 32px;text-align:center;">
+                <p style="margin:0;font-size:11px;color:#646970;">Sent by Severino Labs Security Layer &middot; ' . esc_html($site_name) . ' &middot; &copy; ' . $year . '</p>
+            </td></tr>
+        </table>
+    </td></tr>
+</table>
+</body>
+</html>';
 }
 
 function sl_security_render_status_card($title, $value, $description, $accent_color, $icon = '') {
@@ -1807,6 +2061,7 @@ function sl_security_render_notice() {
         'log_cleared' => ['success', 'Integrity log cleared successfully.'],
         'baseline_deleted' => ['warning', 'Trusted baseline deleted. Create a new baseline before relying on integrity checks.'],
         'settings_saved' => ['success', 'Security layer settings saved successfully.'],
+        'smtp_settings_saved' => ['success', 'Email & SMTP settings saved successfully.'],
         'sem_log_cleared' => ['success', 'Security event log cleared successfully.'],
         'passkey_verification_reset' => ['warning', 'Usernameless passkey verification was reset. Passkey-only login is disabled until the test passes again.'],
     ];

@@ -344,7 +344,9 @@ function sl_fim_run_check() {
         'modified' => $modified_paths,
     ]);
 
-    sl_fim_send_change_notification($added_paths, $removed_paths, $modified_paths);
+    if (function_exists('sl_security_smtp_alert_enabled') && sl_security_smtp_alert_enabled('alert_fim_changes')) {
+        sl_fim_send_change_notification($added_paths, $removed_paths, $modified_paths);
+    }
 }
 
 // Clear the event log file.
@@ -365,21 +367,25 @@ function sl_fim_delete_baseline() {
     sl_fim_write_log('Trusted baseline deleted.');
 }
 
-// Send an email alert when file changes are detected.
+// Send an HTML email alert when file changes are detected.
 function sl_fim_send_change_notification($added, $removed, $modified) {
-    $to = get_option('admin_email');
+    $to = function_exists('sl_security_get_alert_email')
+        ? sl_security_get_alert_email()
+        : get_option('admin_email');
 
     if (!is_email($to)) {
         return;
     }
 
-    $site_name = get_bloginfo('name');
-    $dashboard_url = admin_url('admin.php?page=sl-security-fim');
-
-    $added_count   = count($added);
-    $removed_count = count($removed);
+    $site_name      = get_bloginfo('name');
+    $dashboard_url  = admin_url('admin.php?page=sl-security-fim');
+    $added_count    = count($added);
+    $removed_count  = count($removed);
     $modified_count = count($modified);
-    $total = $added_count + $removed_count + $modified_count;
+    $total          = $added_count + $removed_count + $modified_count;
+    $checked_at     = function_exists('sl_security_format_datetime')
+        ? sl_security_format_datetime(current_time('mysql'))
+        : current_time('mysql');
 
     $subject = sprintf(
         '[%s] File Integrity Alert — %d file %s detected',
@@ -388,48 +394,64 @@ function sl_fim_send_change_notification($added, $removed, $modified) {
         $total === 1 ? 'change' : 'changes'
     );
 
-    $body = "File Integrity Monitoring has detected changes on {$site_name}.
+    $preheader = sprintf('%d file %s detected on %s.', $total, $total === 1 ? 'change' : 'changes', $site_name);
 
-";
+    $sections = [];
+
+    $sections[] = [
+        'heading' => 'Summary',
+        'rows' => [
+            ['label' => 'Site',          'value' => $site_name],
+            ['label' => 'Detected At',   'value' => $checked_at],
+            ['label' => 'Files Added',   'value' => (string) $added_count],
+            ['label' => 'Files Removed', 'value' => (string) $removed_count],
+            ['label' => 'Files Modified','value' => (string) $modified_count],
+        ],
+    ];
 
     if ($added_count > 0) {
-        $body .= "ADDED ({$added_count}):
-";
-        foreach ($added as $path) {
-            $body .= "  + {$path}
-";
-        }
-        $body .= "
-";
+        $sections[] = [
+            'type'    => 'file_list',
+            'heading' => 'Added (' . $added_count . ')',
+            'prefix'  => '+',
+            'files'   => $added,
+        ];
     }
 
     if ($removed_count > 0) {
-        $body .= "REMOVED ({$removed_count}):
-";
-        foreach ($removed as $path) {
-            $body .= "  - {$path}
-";
-        }
-        $body .= "
-";
+        $sections[] = [
+            'type'    => 'file_list',
+            'heading' => 'Removed (' . $removed_count . ')',
+            'prefix'  => '-',
+            'files'   => $removed,
+        ];
     }
 
     if ($modified_count > 0) {
-        $body .= "MODIFIED ({$modified_count}):
-";
-        foreach ($modified as $path) {
-            $body .= "  ~ {$path}
-";
-        }
-        $body .= "
-";
+        $sections[] = [
+            'type'    => 'file_list',
+            'heading' => 'Modified (' . $modified_count . ')',
+            'prefix'  => '~',
+            'files'   => $modified,
+        ];
     }
 
-    $body .= "Review the full change summary in your dashboard:
-{$dashboard_url}
-";
+    if (function_exists('sl_security_build_notification_email')) {
+        $body = sl_security_build_notification_email(
+            'File Integrity Alert',
+            $preheader,
+            $sections,
+            $dashboard_url,
+            'Review Changes'
+        );
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+    } else {
+        // Fallback plain text if builder is unavailable.
+        $body    = $preheader . "\n\nReview changes: " . $dashboard_url;
+        $headers = [];
+    }
 
-    wp_mail($to, $subject, $body);
+    wp_mail($to, $subject, $body, $headers);
 }
 
 // Schedule a daily FIM check if scheduling is enabled.

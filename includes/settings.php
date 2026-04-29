@@ -56,6 +56,71 @@ function sl_security_update_branding_settings($branding_settings) {
     return $branding_settings;
 }
 
+function sl_security_get_default_smtp_settings() {
+    return [
+        'smtp_host'               => '',
+        'smtp_port'               => '587',
+        'smtp_user'               => '',
+        'smtp_pass'               => '',
+        'smtp_from'               => '',
+        'smtp_from_name'          => '',
+        'smtp_debug'              => false,
+        'alert_email'             => '',
+        'alert_fim_changes'       => true,
+        'alert_sem_spike'         => false,
+        'alert_sem_spike_threshold' => 100,
+    ];
+}
+
+function sl_security_get_smtp_settings() {
+    return wp_parse_args(
+        get_option('sl_security_smtp_settings', []),
+        sl_security_get_default_smtp_settings()
+    );
+}
+
+function sl_security_get_smtp_setting($key, $default = '') {
+    $settings = sl_security_get_smtp_settings();
+    return $settings[$key] ?? $default;
+}
+
+function sl_security_smtp_alert_enabled($key) {
+    return !empty(sl_security_get_smtp_setting($key));
+}
+
+function sl_security_get_alert_email() {
+    $email = sl_security_get_smtp_setting('alert_email', '');
+    if (is_email($email)) {
+        return $email;
+    }
+    return get_option('admin_email');
+}
+
+function sl_security_update_smtp_settings($input) {
+    $existing = sl_security_get_smtp_settings();
+    $clean    = [];
+
+    $clean['smtp_host']      = sanitize_text_field($input['smtp_host'] ?? '');
+    $clean['smtp_port']      = absint($input['smtp_port'] ?? 587) ?: 587;
+    $clean['smtp_user']      = sanitize_text_field($input['smtp_user'] ?? '');
+    $clean['smtp_from']      = sanitize_email($input['smtp_from'] ?? '');
+    $clean['smtp_from_name'] = sanitize_text_field($input['smtp_from_name'] ?? '');
+    $clean['smtp_debug']     = !empty($input['smtp_debug']);
+    $clean['alert_email']    = sanitize_email($input['alert_email'] ?? '');
+
+    // Keep existing password unless a new one is provided.
+    $clean['smtp_pass'] = !empty($input['smtp_pass'])
+        ? sanitize_text_field($input['smtp_pass'])
+        : $existing['smtp_pass'];
+
+    $clean['alert_fim_changes']         = !empty($input['alert_fim_changes']);
+    $clean['alert_sem_spike']           = !empty($input['alert_sem_spike']);
+    $clean['alert_sem_spike_threshold'] = absint($input['alert_sem_spike_threshold'] ?? 100) ?: 100;
+
+    update_option('sl_security_smtp_settings', $clean, false);
+    return $clean;
+}
+
 function sl_security_get_default_fim_configuration() {
     return [
         'targets' => [
