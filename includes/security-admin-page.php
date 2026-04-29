@@ -4,6 +4,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Format a stored MySQL datetime as M/D/YY h:mm AM/PM (Central time).
+ */
+function sl_security_format_datetime($mysql_datetime) {
+    if (empty($mysql_datetime) || 'Unknown' === $mysql_datetime) {
+        return 'Unknown';
+    }
+
+    try {
+        $tz = new DateTimeZone('America/Chicago');
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, $tz);
+
+        if (false === $dt) {
+            return esc_html($mysql_datetime);
+        }
+
+        return $dt->format('n/j/y g:i A');
+    } catch (Exception $e) {
+        return esc_html($mysql_datetime);
+    }
+}
+
 function sl_security_enqueue_admin_assets($hook) {
     if (strpos($hook, 'sl-security') !== false) {
         wp_enqueue_style(
@@ -617,7 +639,7 @@ function sl_security_render_dashboard_page() {
                     sl_security_render_status_card(
                         'File Integrity Monitoring',
                         $fim_auto_status,
-                        $fim_enabled ? ($next_check ? 'Next check: ' . wp_date('M j, g:i A', $next_check) : 'Ready for manual check') : 'Enable in Settings to monitor file changes',
+                        $fim_enabled ? ($next_check ? 'Next check: ' . wp_date('n/j/y g:i A', $next_check, new DateTimeZone('America/Chicago')) : 'Ready for manual check') : 'Enable in Settings to monitor file changes',
                         $fim_auto_color,
                         'dashicons-shield-alt'
                     );
@@ -694,7 +716,7 @@ function sl_security_render_dashboard_page() {
                         <tbody>
                             <?php foreach ($recent_events as $event) : ?>
                                 <tr>
-                                    <td><?php echo esc_html($event['timestamp'] ?? ''); ?></td>
+                                    <td><?php echo esc_html(sl_security_format_datetime($event['timestamp'] ?? '')); ?></td>
                                     <td><span class="sl-security-event-type"><?php echo esc_html($event['event_type'] ?? ''); ?></span></td>
                                     <td><?php echo esc_html(substr($event['uri'] ?? '', 0, 50) . (strlen($event['uri'] ?? '') > 50 ? '...' : '')); ?></td>
                                     <td><?php echo esc_html($event['source_ip'] ?? ''); ?></td>
@@ -765,7 +787,7 @@ function sl_security_render_dashboard_page() {
                         <span class="dashicons dashicons-calendar"></span>
                         <div>
                             <strong>Last Updated</strong><br>
-                            <?php echo esc_html(wp_date('M j, Y', filemtime(SL_SECURITY_PLUGIN_FILE))); ?>
+                            <?php echo esc_html(wp_date('n/j/y', filemtime(SL_SECURITY_PLUGIN_FILE), new DateTimeZone('America/Chicago'))); ?>
                         </div>
                     </div>
                 </div>
@@ -861,7 +883,7 @@ function sl_security_render_fim_page() {
                             <?php if ($baseline_info) : ?>
                                 <tr>
                                     <th>Created At</th>
-                                    <td><?php echo esc_html($baseline_info['created_at'] ?? 'Unknown'); ?></td>
+                                    <td><?php echo esc_html(sl_security_format_datetime($baseline_info['created_at'] ?? 'Unknown')); ?></td>
                                 </tr>
                                 <tr>
                                     <th>Age</th>
@@ -880,7 +902,7 @@ function sl_security_render_fim_page() {
                             <?php if ($fim_status) : ?>
                                 <tr>
                                     <th>Last Check</th>
-                                    <td><?php echo esc_html($fim_status['checked_at'] ?? 'Unknown'); ?></td>
+                                    <td><?php echo esc_html(sl_security_format_datetime($fim_status['checked_at'] ?? 'Unknown')); ?></td>
                                 </tr>
                                 <tr>
                                     <th>Check Age</th>
@@ -950,7 +972,7 @@ function sl_security_render_fim_page() {
                                     <?php
                                     echo esc_html(
                                         $next_check
-                                            ? wp_date('F j, Y g:i A', $next_check)
+                                            ? wp_date('n/j/y g:i A', $next_check, new DateTimeZone('America/Chicago'))
                                             : 'No automatic check scheduled'
                                     );
                                     ?>
@@ -1154,7 +1176,7 @@ function sl_security_render_events_page() {
                         <tbody>
                             <?php foreach ($events as $event) : ?>
                                 <tr class="sl-security-event-summary" tabindex="0">
-                                    <td><?php echo esc_html($event['timestamp'] ?? ''); ?></td>
+                                    <td><?php echo esc_html(sl_security_format_datetime($event['timestamp'] ?? '')); ?></td>
                                     <td><code><?php echo esc_html($event['event_type'] ?? ''); ?></code></td>
                                     <td><?php echo esc_html($event['method'] ?? ''); ?></td>
                                     <td><code><?php echo esc_html($event['uri'] ?? ''); ?></code></td>
