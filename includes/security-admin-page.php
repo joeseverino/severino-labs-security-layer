@@ -13,12 +13,17 @@ function sl_security_format_datetime($mysql_datetime) {
     }
 
     try {
-        $tz = new DateTimeZone('America/Chicago');
-        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, $tz);
+        // Datetimes are stored in WP's configured timezone (current_time('mysql')).
+        // Parse in that timezone, then display in Central time.
+        $stored_tz = wp_timezone();
+        $display_tz = new DateTimeZone('America/Chicago');
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, $stored_tz);
 
         if (false === $dt) {
             return esc_html($mysql_datetime);
         }
+
+        $dt->setTimezone($display_tz);
 
         return $dt->format('n/j/y g:i A');
     } catch (Exception $e) {
