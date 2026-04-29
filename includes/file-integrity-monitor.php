@@ -343,6 +343,8 @@ function sl_fim_run_check() {
         'removed' => $removed_paths,
         'modified' => $modified_paths,
     ]);
+
+    sl_fim_send_change_notification($added_paths, $removed_paths, $modified_paths);
 }
 
 // Clear the event log file.
@@ -361,6 +363,73 @@ function sl_fim_delete_baseline() {
     }
 
     sl_fim_write_log('Trusted baseline deleted.');
+}
+
+// Send an email alert when file changes are detected.
+function sl_fim_send_change_notification($added, $removed, $modified) {
+    $to = get_option('admin_email');
+
+    if (!is_email($to)) {
+        return;
+    }
+
+    $site_name = get_bloginfo('name');
+    $dashboard_url = admin_url('admin.php?page=sl-security-fim');
+
+    $added_count   = count($added);
+    $removed_count = count($removed);
+    $modified_count = count($modified);
+    $total = $added_count + $removed_count + $modified_count;
+
+    $subject = sprintf(
+        '[%s] File Integrity Alert — %d file %s detected',
+        $site_name,
+        $total,
+        $total === 1 ? 'change' : 'changes'
+    );
+
+    $body = "File Integrity Monitoring has detected changes on {$site_name}.
+
+";
+
+    if ($added_count > 0) {
+        $body .= "ADDED ({$added_count}):
+";
+        foreach ($added as $path) {
+            $body .= "  + {$path}
+";
+        }
+        $body .= "
+";
+    }
+
+    if ($removed_count > 0) {
+        $body .= "REMOVED ({$removed_count}):
+";
+        foreach ($removed as $path) {
+            $body .= "  - {$path}
+";
+        }
+        $body .= "
+";
+    }
+
+    if ($modified_count > 0) {
+        $body .= "MODIFIED ({$modified_count}):
+";
+        foreach ($modified as $path) {
+            $body .= "  ~ {$path}
+";
+        }
+        $body .= "
+";
+    }
+
+    $body .= "Review the full change summary in your dashboard:
+{$dashboard_url}
+";
+
+    wp_mail($to, $subject, $body);
 }
 
 // Schedule a daily FIM check if scheduling is enabled.

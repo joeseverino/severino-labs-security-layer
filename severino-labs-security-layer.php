@@ -71,5 +71,3 @@ function sl_security_deactivate() {
         sl_fim_clear_event();
     }
 }
-
-//Test commit

@@ -13,17 +13,12 @@ function sl_security_format_datetime($mysql_datetime) {
     }
 
     try {
-        // Datetimes are stored in WP's configured timezone (current_time('mysql')).
-        // Parse in that timezone, then display in Central time.
-        $stored_tz = wp_timezone();
-        $display_tz = new DateTimeZone('America/Chicago');
-        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, $stored_tz);
+        // Parse and display in WP's configured timezone.
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, wp_timezone());
 
         if (false === $dt) {
             return esc_html($mysql_datetime);
         }
-
-        $dt->setTimezone($display_tz);
 
         return $dt->format('n/j/y g:i A');
     } catch (Exception $e) {
@@ -644,7 +639,7 @@ function sl_security_render_dashboard_page() {
                     sl_security_render_status_card(
                         'File Integrity Monitoring',
                         $fim_auto_status,
-                        $fim_enabled ? ($next_check ? 'Next check: ' . wp_date('n/j/y g:i A', $next_check, new DateTimeZone('America/Chicago')) : 'Ready for manual check') : 'Enable in Settings to monitor file changes',
+                        $fim_enabled ? ($next_check ? 'Next check: ' . wp_date('n/j/y g:i A', $next_check) : 'Ready for manual check') : 'Enable in Settings to monitor file changes',
                         $fim_auto_color,
                         'dashicons-shield-alt'
                     );
@@ -792,7 +787,7 @@ function sl_security_render_dashboard_page() {
                         <span class="dashicons dashicons-calendar"></span>
                         <div>
                             <strong>Last Updated</strong><br>
-                            <?php echo esc_html(wp_date('n/j/y', filemtime(SL_SECURITY_PLUGIN_FILE), new DateTimeZone('America/Chicago'))); ?>
+                            <?php echo esc_html(wp_date('n/j/y', filemtime(SL_SECURITY_PLUGIN_FILE))); ?>
                         </div>
                     </div>
                 </div>
@@ -977,7 +972,7 @@ function sl_security_render_fim_page() {
                                     <?php
                                     echo esc_html(
                                         $next_check
-                                            ? wp_date('n/j/y g:i A', $next_check, new DateTimeZone('America/Chicago'))
+                                            ? wp_date('n/j/y g:i A', $next_check)
                                             : 'No automatic check scheduled'
                                     );
                                     ?>
