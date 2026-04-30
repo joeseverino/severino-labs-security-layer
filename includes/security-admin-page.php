@@ -2069,7 +2069,7 @@ function sl_security_send_daily_dashboard_email() {
 
     // ── Next check note ────────────────────────────────────────────────────────
     $next_str = $next_check && $fim_enabled
-        ? '<p style="margin:0;font-size:11px;color:rgba(255,255,255,.7);">Next FIM check: ' . wp_date('n/j/y g:i A', $next_check) . '</p>'
+        ? '<p style="margin:0;font-size:11px;color:rgba(255,255,255,.7);text-align:right;">Next FIM check: ' . wp_date('n/j/y g:i A', $next_check) . '</p>'
         : '';
 
     // ── Assemble HTML ──────────────────────────────────────────────────────────
@@ -2099,7 +2099,7 @@ function sl_security_send_daily_dashboard_email() {
                 <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,.9);font-weight:600;">' . esc_html($status_info['status']) . '</p>
             </td>
             <td style="vertical-align:middle;text-align:right;padding-left:16px;">
-                <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,.8);max-width:220px;line-height:1.4;">' . esc_html($status_info['message']) . '</p>
+                <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,.8);line-height:1.4;text-align:right;">' . esc_html($status_info['message']) . '</p>
                 ' . $next_str . '
             </td>
         </tr></table>
@@ -2111,9 +2111,9 @@ function sl_security_send_daily_dashboard_email() {
 
             <td style="padding-right:8px;vertical-align:top;width:33%;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $events_color . ';border-radius:3px;">
-                    <tr><td style="padding:16px;background:#fff;">
-                        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Events Today</p>
+                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $events_color . ';border-radius:3px;height:80px;">
+                    <tr><td style="padding:14px 16px;background:#fff;vertical-align:top;height:80px;">
+                        <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Events Today</p>
                         <p style="margin:0;font-size:28px;font-weight:800;color:' . $events_color . ';line-height:1;">' . number_format($events_today) . '</p>
                     </td></tr>
                 </table>
@@ -2121,19 +2121,19 @@ function sl_security_send_daily_dashboard_email() {
 
             <td style="padding:0 4px;vertical-align:top;width:33%;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $fim_color . ';border-radius:3px;">
-                    <tr><td style="padding:16px;background:#fff;">
-                        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">File Integrity</p>
-                        <p style="margin:0;font-size:20px;font-weight:800;color:' . $fim_color . ';line-height:1.2;">' . esc_html($fim_label) . '</p>
+                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $fim_color . ';border-radius:3px;height:80px;">
+                    <tr><td style="padding:14px 16px;background:#fff;vertical-align:top;height:80px;">
+                        <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">File Integrity</p>
+                        <p style="margin:0;font-size:28px;font-weight:800;color:' . $fim_color . ';line-height:1;">' . esc_html($fim_label) . '</p>
                     </td></tr>
                 </table>
             </td>
 
             <td style="padding-left:8px;vertical-align:top;width:33%;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $c_blue . ';border-radius:3px;">
-                    <tr><td style="padding:16px;background:#fff;">
-                        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Total Events</p>
+                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $c_blue . ';border-radius:3px;height:80px;">
+                    <tr><td style="padding:14px 16px;background:#fff;vertical-align:top;height:80px;">
+                        <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Total Events</p>
                         <p style="margin:0;font-size:28px;font-weight:800;color:' . $c_blue . ';line-height:1;">' . number_format($total_events) . '</p>
                     </td></tr>
                 </table>
