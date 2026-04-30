@@ -1879,90 +1879,299 @@ function sl_security_send_fim_daily_report() {
 }
 
 /**
- * Send a daily security dashboard email with key site insights.
- * Hooked into sl_fim_daily_check at priority 30 (after FIM report at 20).
+ * Send a rich visual daily security dashboard email.
+ * Hooked into sl_fim_daily_check at priority 20 (after sl_fim_run_check).
  */
 function sl_security_send_daily_dashboard_email() {
     $to = sl_security_get_alert_email();
-
     if (!is_email($to)) {
         return;
     }
 
-    $site_name      = get_bloginfo('name');
-    $fim_enabled    = sl_security_setting_enabled('enable_fim');
-    $sem_enabled    = sl_security_setting_enabled('enable_sem');
+    // ── Gather data ────────────────────────────────────────────────────────────
+    $site_name       = get_bloginfo('name');
+    $fim_enabled     = sl_security_setting_enabled('enable_fim');
+    $sem_enabled     = sl_security_setting_enabled('enable_sem');
     $baseline_exists = file_exists(SL_FIM_BASELINE_FILE);
-    $fim_status     = function_exists('sl_fim_get_status') ? sl_fim_get_status() : null;
-    $next_check     = wp_next_scheduled('sl_fim_daily_check');
-    $events_today   = function_exists('sl_sem_count_events_today') ? sl_sem_count_events_today() : 0;
-    $total_events   = function_exists('sl_sem_count_total_events') ? sl_sem_count_total_events() : 0;
-    $recent_events  = function_exists('sl_sem_get_recent_events') ? sl_sem_get_recent_events(5) : [];
-    $score          = sl_security_calculate_security_score($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today);
-    $status_info    = sl_security_get_overall_security_status($score);
+    $fim_status      = function_exists('sl_fim_get_status') ? sl_fim_get_status() : null;
+    $next_check      = wp_next_scheduled('sl_fim_daily_check');
+    $events_today    = function_exists('sl_sem_count_events_today') ? sl_sem_count_events_today() : 0;
+    $total_events    = function_exists('sl_sem_count_total_events') ? sl_sem_count_total_events() : 0;
+    $recent_events   = function_exists('sl_sem_get_recent_events') ? sl_sem_get_recent_events(5) : [];
+    $events_per_day  = function_exists('sl_sem_get_events_per_day') ? sl_sem_get_events_per_day(7) : [];
+    $top_types       = function_exists('sl_sem_get_top_event_types') ? sl_sem_get_top_event_types(4) : [];
+    $score           = sl_security_calculate_security_score($fim_enabled, $sem_enabled, $baseline_exists, $fim_status, $events_today);
+    $status_info     = sl_security_get_overall_security_status($score);
+    $fim_label       = $fim_enabled ? sl_security_get_last_check_label($fim_status) : 'Disabled';
 
     $subject   = sprintf('[%s] Daily Security Dashboard — %s', $site_name, wp_date('n/j/y'));
-    $preheader = sprintf('Security score %d%%. %d event%s today. %s', $score, $events_today, $events_today === 1 ? '' : 's', $status_info['status']);
+    $preheader = sprintf('Score %d%% · %d event%s today · %s', $score, $events_today, $events_today === 1 ? '' : 's', $status_info['status']);
+    $date_str  = wp_date('l, F j, Y');
 
-    $sections = [];
+    // ── Colours ────────────────────────────────────────────────────────────────
+    $c_dark   = '#1d2327';
+    $c_green  = '#008a20';
+    $c_red    = '#b32d2e';
+    $c_yellow = '#dba617';
+    $c_blue   = '#2271b1';
+    $c_gray   = '#646970';
+    $c_border = '#e0e0e0';
+    $c_bg     = '#f0f0f1';
+    $year     = gmdate('Y');
 
-    // Overview
-    $overview_rows = [
-        ['label' => 'Security Score',    'value' => $score . '%  —  ' . $status_info['status']],
-        ['label' => 'Date',              'value' => wp_date('l, F j, Y')],
-        ['label' => 'File Integrity',    'value' => $fim_enabled ? sl_security_get_last_check_label($fim_status) : 'Disabled'],
-        ['label' => 'Events Today',      'value' => number_format($events_today)],
-        ['label' => 'Events All-Time',   'value' => number_format($total_events)],
-    ];
-    if ($next_check) {
-        $overview_rows[] = ['label' => 'Next FIM Check', 'value' => wp_date('n/j/y g:i A', $next_check)];
-    }
-    $sections[] = ['heading' => 'Security Overview', 'rows' => $overview_rows];
+    $score_color  = $score >= 90 ? $c_green : ($score >= 70 ? $c_yellow : ($score >= 50 ? $c_red : $c_gray));
+    $events_color = $events_today === 0 ? $c_green : ($events_today > 20 ? $c_red : $c_yellow);
+    $fim_color    = !$fim_enabled ? $c_gray :
+        (($fim_status['status'] ?? '') === 'passed' ? $c_green :
+        (($fim_status['status'] ?? '') === 'changes_detected' ? $c_red : $c_yellow));
 
-    // FIM detail (when changes exist)
-    if ($fim_enabled && $fim_status && ($fim_status['status'] ?? '') === 'changes_detected') {
-        $total_changes = (int) ($fim_status['added_count'] ?? 0)
-            + (int) ($fim_status['removed_count'] ?? 0)
-            + (int) ($fim_status['modified_count'] ?? 0);
-        $fim_rows = [
-            ['label' => 'Changes Found', 'value' => (string) $total_changes . ' file' . ($total_changes === 1 ? '' : 's')],
-        ];
-        if (!empty($fim_status['added_count']))    $fim_rows[] = ['label' => 'Added',    'value' => (string) (int) $fim_status['added_count']];
-        if (!empty($fim_status['removed_count']))  $fim_rows[] = ['label' => 'Removed',  'value' => (string) (int) $fim_status['removed_count']];
-        if (!empty($fim_status['modified_count'])) $fim_rows[] = ['label' => 'Modified', 'value' => (string) (int) $fim_status['modified_count']];
-        $sections[] = ['heading' => 'File Integrity Changes', 'rows' => $fim_rows];
-    }
+    // ── Bar chart (7-day event volume) ─────────────────────────────────────────
+    $bar_chart_html = '';
+    if (!empty($events_per_day)) {
+        $counts     = array_column($events_per_day, 'count');
+        $max_count  = max($counts) ?: 1;
+        $max_height = 60;
+        $today_date = wp_date('Y-m-d');
 
-    // Recent security events
-    if ($sem_enabled && !empty($recent_events)) {
-        $event_rows = [];
-        foreach ($recent_events as $event) {
-            $event_rows[] = [
-                'label' => sl_security_format_datetime($event['timestamp'] ?? ''),
-                'value' => esc_html(($event['event_type'] ?? 'Unknown') . ($event['source_ip'] ? '  ·  ' . $event['source_ip'] : '')),
-            ];
+        $bars = '';
+        foreach ($events_per_day as $day) {
+            $count      = $day['count'];
+            $bar_h      = max(2, (int) round(($count / $max_count) * $max_height));
+            $is_today   = $day['date'] === $today_date;
+            $bar_color  = $is_today ? $c_blue : '#93c5d4';
+            $lbl_weight = $is_today ? '700' : '400';
+            $lbl_color  = $is_today ? $c_dark : $c_gray;
+            $count_str  = $count > 0 ? $count : '';
+
+            $bars .= '<td style="vertical-align:bottom;text-align:center;padding:0 5px;width:14%;">'
+                . '<p style="margin:0 0 3px;font-size:10px;color:' . $c_gray . ';font-weight:600;min-height:14px;">' . $count_str . '</p>'
+                . '<div style="background:' . $bar_color . ';height:' . $bar_h . 'px;border-radius:3px 3px 0 0;"></div>'
+                . '<p style="margin:6px 0 0;font-size:10px;color:' . $lbl_color . ';font-weight:' . $lbl_weight . ';">' . esc_html($day['label']) . '</p>'
+                . '</td>';
         }
-        $sections[] = ['heading' => 'Recent Security Events', 'rows' => $event_rows];
+
+        $bar_chart_html = '
+        <tr><td style="padding:0 0 28px;">
+            <p style="margin:0 0 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Security Events — Last 7 Days</p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid ' . $c_border . ';">
+                <tr>' . $bars . '</tr>
+            </table>
+        </td></tr>';
     }
 
-    /**
-     * Allow companion plugins to append additional sections to the daily dashboard email.
-     *
-     * Each section must be an array accepted by sl_security_build_notification_email():
-     *   ['heading' => 'Title', 'rows' => [['label' => '', 'value' => ''], ...]]
-     *   ['type' => 'file_list', 'heading' => '', 'prefix' => '+', 'files' => [...]]
-     *
-     * @param array $sections Existing dashboard sections.
-     */
-    $sections = apply_filters('sl_security_daily_dashboard_sections', $sections);
+    // ── Top event types (inline mini-bars) ─────────────────────────────────────
+    $types_html = '';
+    if ($sem_enabled && !empty($top_types)) {
+        $max_tc   = max(array_column($top_types, 'count')) ?: 1;
+        $type_rows = '';
+        foreach ($top_types as $t) {
+            $pct = (int) round(($t['count'] / $max_tc) * 100);
+            $type_rows .= '
+            <tr>
+                <td style="padding:7px 0;width:140px;font-size:12px;font-family:monospace;color:' . $c_dark . ';white-space:nowrap;">' . esc_html($t['type']) . '</td>
+                <td style="padding:7px 8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                        <td width="' . $pct . '%" style="background:' . $c_blue . ';height:8px;border-radius:2px;font-size:0;">&nbsp;</td>
+                        <td style="background:' . $c_border . ';height:8px;border-radius:0 2px 2px 0;font-size:0;">&nbsp;</td>
+                    </tr></table>
+                </td>
+                <td style="padding:7px 0;width:28px;text-align:right;font-size:12px;font-weight:700;color:' . $c_gray . ';">' . $t['count'] . '</td>
+            </tr>';
+        }
+        $types_html = '
+        <tr><td style="padding:0 0 28px;">
+            <p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Top Event Types</p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">' . $type_rows . '</table>
+        </td></tr>';
+    }
 
-    $body = sl_security_build_notification_email(
-        'Daily Security Dashboard',
-        $preheader,
-        $sections,
-        admin_url('admin.php?page=' . SL_SECURITY_MENU_SLUG),
-        'Open Dashboard'
-    );
+    // ── Recent events table ────────────────────────────────────────────────────
+    $recent_html = '';
+    if ($sem_enabled && !empty($recent_events)) {
+        $event_rows = '';
+        foreach ($recent_events as $ev) {
+            $ts   = sl_security_format_datetime($ev['timestamp'] ?? '');
+            $type = $ev['event_type'] ?? '—';
+            $ip   = $ev['source_ip'] ?? '—';
+            $event_rows .= '
+                <tr style="border-top:1px solid ' . $c_border . ';">
+                    <td style="padding:8px 12px;font-size:12px;color:' . $c_gray . ';white-space:nowrap;">' . esc_html($ts) . '</td>
+                    <td style="padding:8px 12px;font-size:12px;color:' . $c_dark . ';font-family:monospace;">' . esc_html($type) . '</td>
+                    <td style="padding:8px 12px;font-size:12px;color:' . $c_gray . ';">' . esc_html($ip) . '</td>
+                </tr>';
+        }
+        $recent_html = '
+        <tr><td style="padding:0 0 28px;">
+            <p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Recent Security Activity</p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ' . $c_border . ';border-radius:4px;overflow:hidden;">
+                <thead><tr style="background:#f9f9f9;">
+                    <th style="padding:8px 12px;font-size:11px;color:' . $c_gray . ';text-align:left;font-weight:700;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid ' . $c_border . ';">Time</th>
+                    <th style="padding:8px 12px;font-size:11px;color:' . $c_gray . ';text-align:left;font-weight:700;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid ' . $c_border . ';">Event</th>
+                    <th style="padding:8px 12px;font-size:11px;color:' . $c_gray . ';text-align:left;font-weight:700;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid ' . $c_border . ';">Source IP</th>
+                </tr></thead>
+                <tbody>' . $event_rows . '</tbody>
+            </table>
+        </td></tr>';
+    }
+
+    // ── FIM alert banner (only on changes) ─────────────────────────────────────
+    $fim_banner_html = '';
+    if ($fim_enabled && ($fim_status['status'] ?? '') === 'changes_detected') {
+        $tc = (int)($fim_status['added_count'] ?? 0)
+            + (int)($fim_status['removed_count'] ?? 0)
+            + (int)($fim_status['modified_count'] ?? 0);
+        $fim_banner_html = '
+        <tr><td style="padding:0 0 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="background:#fff5f5;border:1px solid #f5c6cb;border-radius:4px;">
+                <tr><td style="padding:14px 18px;">
+                    <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:' . $c_red . ';">⚠ File Integrity — Changes Detected</p>
+                    <p style="margin:0;font-size:12px;color:#3c3c3c;">'
+                        . $tc . ' file' . ($tc === 1 ? '' : 's') . ' changed — '
+                        . (int)($fim_status['added_count'] ?? 0) . ' added, '
+                        . (int)($fim_status['removed_count'] ?? 0) . ' removed, '
+                        . (int)($fim_status['modified_count'] ?? 0) . ' modified.'
+                    . '</p>
+                </td></tr>
+            </table>
+        </td></tr>';
+    }
+
+    // ── Companion plugin sections (e.g. SLAM contact form stats) ───────────────
+    /**
+     * Companion plugins can append extra label/value sections to this email.
+     * Each element: ['heading' => 'Title', 'rows' => [['label'=>'','value'=>''], ...]]
+     *
+     * @param array $sections Starting empty; plugins append their own sections.
+     */
+    $extra_sections = apply_filters('sl_security_daily_dashboard_sections', []);
+    $extra_html     = '';
+    foreach ($extra_sections as $section) {
+        if (empty($section['rows'])) {
+            continue;
+        }
+        $heading = !empty($section['heading'])
+            ? '<p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">' . esc_html($section['heading']) . '</p>'
+            : '';
+        $xrows = '';
+        foreach ($section['rows'] as $row) {
+            $xrows .= '
+            <tr>
+                <td style="padding:8px 12px;background:#f9f9f9;border:1px solid ' . $c_border . ';width:32%;font-weight:600;font-size:13px;color:' . $c_dark . ';">' . esc_html($row['label']) . '</td>
+                <td style="padding:8px 12px;background:#fff;border:1px solid ' . $c_border . ';font-size:13px;color:#3c3c3c;">' . wp_kses_post($row['value']) . '</td>
+            </tr>';
+        }
+        $extra_html .= '
+        <tr><td style="padding:0 0 24px;">' . $heading . '
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">' . $xrows . '</table>
+        </td></tr>';
+    }
+
+    // ── Next check note ────────────────────────────────────────────────────────
+    $next_str = $next_check && $fim_enabled
+        ? '<p style="margin:0;font-size:11px;color:rgba(255,255,255,.7);">Next FIM check: ' . wp_date('n/j/y g:i A', $next_check) . '</p>'
+        : '';
+
+    // ── Assemble HTML ──────────────────────────────────────────────────────────
+    $body = '<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>' . esc_html($subject) . '</title></head>
+<body style="margin:0;padding:0;background:' . $c_bg . ';font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">
+<span style="display:none;max-height:0;overflow:hidden;">' . esc_html($preheader) . '&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</span>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' . $c_bg . ';padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
+
+    <!-- HEADER -->
+    <tr><td style="background:' . $c_dark . ';padding:24px 32px 20px;">
+        <p style="margin:0 0 5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:' . $c_green . ';">' . esc_html($site_name) . ' · Severino Labs Security Layer</p>
+        <h1 style="margin:0 0 5px;font-size:22px;font-weight:800;color:#fff;line-height:1.2;">Daily Security Dashboard</h1>
+        <p style="margin:0;font-size:13px;color:#a0a5aa;">' . esc_html($date_str) . '</p>
+    </td></tr>
+
+    <!-- SCORE STRIP -->
+    <tr><td style="background:' . $score_color . ';padding:18px 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="vertical-align:middle;">
+                <p style="margin:0;font-size:38px;font-weight:800;color:#fff;line-height:1;">' . $score . '%</p>
+                <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,.9);font-weight:600;">' . esc_html($status_info['status']) . '</p>
+            </td>
+            <td style="vertical-align:middle;text-align:right;padding-left:16px;">
+                <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,.8);max-width:220px;line-height:1.4;">' . esc_html($status_info['message']) . '</p>
+                ' . $next_str . '
+            </td>
+        </tr></table>
+    </td></tr>
+
+    <!-- METRIC CARDS -->
+    <tr><td style="padding:24px 32px 20px;background:#fff;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+
+            <td style="padding-right:8px;vertical-align:top;width:33%;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="border-top:3px solid ' . $events_color . ';border-radius:0 0 4px 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+                    <tr><td style="padding:14px 16px;background:#fff;">
+                        <p style="margin:0 0 4px;font-size:30px;font-weight:800;color:' . $events_color . ';line-height:1;">' . number_format($events_today) . '</p>
+                        <p style="margin:0 0 2px;font-size:12px;font-weight:700;color:' . $c_dark . ';">Events Today</p>
+                        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">' . ($sem_enabled ? ($events_today === 0 ? 'All clear' : 'Events logged') : 'Monitoring off') . '</p>
+                    </td></tr>
+                </table>
+            </td>
+
+            <td style="padding:0 4px;vertical-align:top;width:33%;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="border-top:3px solid ' . $fim_color . ';border-radius:0 0 4px 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+                    <tr><td style="padding:14px 16px;background:#fff;">
+                        <p style="margin:0 0 4px;font-size:18px;font-weight:800;color:' . $fim_color . ';line-height:1.2;">' . esc_html($fim_label) . '</p>
+                        <p style="margin:0 0 2px;font-size:12px;font-weight:700;color:' . $c_dark . ';">File Integrity</p>
+                        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">' . ($fim_enabled ? 'Last check result' : 'FIM disabled') . '</p>
+                    </td></tr>
+                </table>
+            </td>
+
+            <td style="padding-left:8px;vertical-align:top;width:33%;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="border-top:3px solid ' . $c_blue . ';border-radius:0 0 4px 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+                    <tr><td style="padding:14px 16px;background:#fff;">
+                        <p style="margin:0 0 4px;font-size:30px;font-weight:800;color:' . $c_blue . ';line-height:1;">' . number_format($total_events) . '</p>
+                        <p style="margin:0 0 2px;font-size:12px;font-weight:700;color:' . $c_dark . ';">Total Events</p>
+                        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">All-time logged</p>
+                    </td></tr>
+                </table>
+            </td>
+
+        </tr></table>
+    </td></tr>
+
+    <!-- BODY -->
+    <tr><td style="padding:28px 32px 8px;background:#fff;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            ' . $bar_chart_html . '
+            ' . $fim_banner_html . '
+            ' . $types_html . '
+            ' . $recent_html . '
+            ' . $extra_html . '
+        </table>
+    </td></tr>
+
+    <!-- CTA -->
+    <tr><td style="padding:0 32px 28px;background:#fff;text-align:center;">
+        <a href="' . esc_url(admin_url('admin.php?page=' . SL_SECURITY_MENU_SLUG)) . '"
+           style="display:inline-block;background:' . $c_green . ';color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 32px;border-radius:4px;">
+            Open Dashboard
+        </a>
+    </td></tr>
+
+    <!-- FOOTER -->
+    <tr><td style="background:#f0f0f1;border-top:1px solid ' . $c_border . ';padding:14px 32px;text-align:center;">
+        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">Severino Labs Security Layer &middot; ' . esc_html($site_name) . ' &middot; &copy; ' . $year . '</p>
+    </td></tr>
+
+</table></td></tr>
+</table>
+</body></html>';
 
     wp_mail($to, $subject, $body, ['Content-Type: text/html; charset=UTF-8']);
 }

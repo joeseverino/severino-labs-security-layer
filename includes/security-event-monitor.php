@@ -186,3 +186,62 @@ function sl_sem_count_total_events() {
     $events = sl_sem_get_recent_events(10000); // Get a large number to count total
     return count($events);
 }
+
+/**
+ * Return event counts grouped by day for the last $days days.
+ * Each entry: ['date' => 'Y-m-d', 'label' => 'Mon', 'count' => N]
+ */
+function sl_sem_get_events_per_day($days = 7) {
+    $tz     = wp_timezone();
+    $result = [];
+    $index  = [];
+
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $dt   = new DateTime("now -{$i} days", $tz);
+        $date = $dt->format('Y-m-d');
+        $result[] = [
+            'date'  => $date,
+            'label' => $dt->format('D'), // Mon, Tue …
+            'count' => 0,
+        ];
+        $index[$date] = count($result) - 1;
+    }
+
+    foreach (sl_sem_get_recent_events(5000) as $event) {
+        if (empty($event['timestamp'])) {
+            continue;
+        }
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $event['timestamp'], $tz);
+        if (!$dt) {
+            continue;
+        }
+        $date = $dt->format('Y-m-d');
+        if (isset($index[$date])) {
+            $result[$index[$date]]['count']++;
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * Return the top $limit event types by frequency from recent events.
+ * Each entry: ['type' => string, 'count' => int]
+ */
+function sl_sem_get_top_event_types($limit = 4) {
+    $counts = [];
+
+    foreach (sl_sem_get_recent_events(1000) as $event) {
+        $type          = $event['event_type'] ?? 'unknown';
+        $counts[$type] = ($counts[$type] ?? 0) + 1;
+    }
+
+    arsort($counts);
+
+    $result = [];
+    foreach (array_slice($counts, 0, $limit, true) as $type => $count) {
+        $result[] = ['type' => $type, 'count' => $count];
+    }
+
+    return $result;
+}
