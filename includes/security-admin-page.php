@@ -1823,7 +1823,7 @@ function sl_security_send_fim_daily_report() {
     $site_name  = get_bloginfo('name');
     $fim_status = function_exists('sl_fim_get_status') ? sl_fim_get_status() : null;
     $next_check = wp_next_scheduled('sl_fim_daily_check');
-    $checked_at = sl_security_format_datetime(current_time('mysql'));
+    $checked_at = sl_security_format_datetime(current_time('mysql', true));
 
     $status_label = $fim_status ? sl_security_get_last_check_label($fim_status) : 'Unknown';
     $is_clean     = $fim_status && ($fim_status['status'] ?? '') === 'passed';

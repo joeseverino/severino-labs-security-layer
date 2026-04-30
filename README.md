@@ -3,7 +3,7 @@
 [![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 [![WordPress: 5.8+](https://img.shields.io/badge/wordpress-5.8%2B-21759b.svg)](https://wordpress.org/)
 [![PHP: 7.4+](https://img.shields.io/badge/php-7.4%2B-777bb4.svg)](https://www.php.net/)
-[![Version: 6.1.0](https://img.shields.io/badge/version-6.1.0-success.svg)](#changelog)
+[![Version: 7.0.0](https://img.shields.io/badge/version-7.0.0-success.svg)](#changelog)
 
 A focused WordPress security plugin that consolidates application hardening, browser-enforced security policies, file integrity monitoring, security event logging, and an optional passkey-first login experience into a single, reviewable codebase.
 
@@ -17,6 +17,7 @@ It exists to replace the usual sprawl of snippets, theme edits, and partially-ov
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Email Alerts and SMTP](#email-alerts-and-smtp)
 - [The Admin Dashboard](#the-admin-dashboard)
 - [Security Score](#security-score)
 - [Privacy and Data Collection](#privacy-and-data-collection)
@@ -72,6 +73,16 @@ It exists to replace the usual sprawl of snippets, theme edits, and partially-ov
 - Cloudflare metadata support (`CF-Connecting-IP`, `CF-IPCountry`, `CF-Ray`) where present
 - Recent activity panel on the dashboard
 - Per-user opt-out from logging via the WordPress profile screen
+
+### 📧 Email Alerts and SMTP
+
+- Built-in SMTP configuration (host, port, username, password, from address, from name) stored in plugin settings — no separate SMTP plugin required
+- Immediate alert when a FIM check detects file changes, sent as soon as the check completes
+- Configurable SEM event-spike alert with an adjustable threshold — fires when the number of security events in the log exceeds the configured count
+- Optional daily FIM report email sent at the scheduled check time with a full summary of monitored files, check result, and change counts
+- Optional daily security dashboard email with a polished snapshot covering security score, FIM status, and recent security events
+- Dedicated alert recipient address independent of the WordPress admin email
+- SMTP debug mode for troubleshooting delivery issues
 
 ### 🔐 Passkey-First Login (Optional)
 
@@ -133,6 +144,24 @@ The custom login page can be styled with:
 - A custom logo URL
 - A site display label
 - Per-deployment branding overrides
+
+## Email Alerts and SMTP
+
+SMTP credentials and alert preferences are configured from the **Settings → Email & Alerts** section.
+
+**SMTP settings** — host, port, username, password, sender address, and sender name. The plugin hooks directly into WordPress's `phpmailer_init` action, so all `wp_mail()` calls (including those from other plugins running on the same site) route through the configured server once credentials are saved. SMTP debug mode logs the full handshake to the PHP error log for troubleshooting.
+
+**Immediate alerts** fire as soon as a triggering condition is detected:
+
+- **FIM changes detected** — sent the moment a scheduled or manual integrity check finds any added, removed, or modified files.
+- **SEM event spike** — sent when the total number of logged security events exceeds a configurable threshold. Useful for catching brute-force waves or scanning activity without watching the dashboard.
+
+**Daily digest emails** are sent once per day at the time of the scheduled FIM check:
+
+- **Daily FIM report** — covers check result (passed / changes detected), file counts, a change summary if applicable, and the next scheduled check time.
+- **Daily security dashboard** — a formatted security snapshot including the current score, FIM status, recent security events, and site metadata.
+
+A dedicated **alert recipient address** can be set independently of the WordPress admin email — useful when notifications should go to a security inbox rather than the general admin account.
 
 ### File Integrity Monitoring
 
@@ -230,6 +259,37 @@ For security-sensitive reports, please open a private discussion or email the au
 6. Keep WordPress core, themes, plugins, PHP, and hosting controls updated. This plugin reduces exposure; it does not patch known vulnerabilities for you.
 
 ## Changelog
+
+### Version 7.0.0
+
+**Email alerts and SMTP**
+
+- Added a full SMTP configuration panel (host, port, credentials, sender address, debug mode) stored in plugin settings. Hooks into `phpmailer_init` so all `wp_mail()` calls on the site route through the configured server once credentials are saved.
+- Added an immediate FIM alert email — fires as soon as a scheduled or manual integrity check detects any added, removed, or modified files.
+- Added a configurable SEM event-spike alert — sends a notification when the total logged event count crosses an adjustable threshold.
+- Added a daily FIM report email — sent at the scheduled check time with result, file counts, change summary, and next check time.
+- Added a daily security dashboard email — a formatted snapshot covering security score, FIM status, and recent security events.
+- Added a dedicated alert recipient address field, independent of the WordPress admin email.
+
+**Timezone handling**
+
+- Security event timestamps are now stored as UTC and converted to the WordPress-configured timezone at display time. Previously, timestamps were stored in local time, causing all displayed times to shift whenever the WordPress timezone setting was changed.
+- `sl_sem_count_events_today()` now converts stored UTC timestamps to the local timezone before comparing dates, so event counts are correct at midnight boundaries.
+- The per-day activity chart now correctly converts UTC timestamps to the local timezone before bucketing events by date.
+- Fixed a stale `current_time('mysql')` call in the FIM daily report email that was passing local time to a UTC-aware formatter.
+
+**Documentation**
+
+- README fully documents the email alerts and SMTP system for the first time — covers SMTP setup, both immediate alerts, both daily digests, the alert recipient field, and debug mode.
+
+### Version 6.2.0
+
+**Timezone handling**
+
+- Security event timestamps are now stored as UTC and converted to the WordPress-configured timezone at display time. Previously, timestamps were stored in the site's local time, which caused all displayed times to shift whenever the WordPress timezone setting was changed.
+- `sl_sem_count_events_today()` now converts stored UTC timestamps to the local timezone before comparing dates, so event counts are correct at midnight boundaries rather than being evaluated against the UTC date.
+- The per-day activity chart (`sl_sem_get_events_per_day()`) now correctly converts UTC timestamps to the local timezone before bucketing events by date.
+- Fixed a stale `current_time('mysql')` call in the FIM daily report email that was passing local time to a UTC-aware formatter, which would have produced incorrect "checked at" timestamps in the email.
 
 ### Version 6.1.0
 
