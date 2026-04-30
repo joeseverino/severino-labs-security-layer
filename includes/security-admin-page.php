@@ -2111,33 +2111,30 @@ function sl_security_send_daily_dashboard_email() {
 
             <td style="padding-right:8px;vertical-align:top;width:33%;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="border-top:3px solid ' . $events_color . ';border-radius:0 0 4px 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
-                    <tr><td style="padding:14px 16px;background:#fff;">
-                        <p style="margin:0 0 4px;font-size:30px;font-weight:800;color:' . $events_color . ';line-height:1;">' . number_format($events_today) . '</p>
-                        <p style="margin:0 0 2px;font-size:12px;font-weight:700;color:' . $c_dark . ';">Events Today</p>
-                        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">' . ($sem_enabled ? ($events_today === 0 ? 'All clear' : 'Events logged') : 'Monitoring off') . '</p>
+                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $events_color . ';border-radius:3px;">
+                    <tr><td style="padding:16px;background:#fff;">
+                        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Events Today</p>
+                        <p style="margin:0;font-size:28px;font-weight:800;color:' . $events_color . ';line-height:1;">' . number_format($events_today) . '</p>
                     </td></tr>
                 </table>
             </td>
 
             <td style="padding:0 4px;vertical-align:top;width:33%;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="border-top:3px solid ' . $fim_color . ';border-radius:0 0 4px 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
-                    <tr><td style="padding:14px 16px;background:#fff;">
-                        <p style="margin:0 0 4px;font-size:18px;font-weight:800;color:' . $fim_color . ';line-height:1.2;">' . esc_html($fim_label) . '</p>
-                        <p style="margin:0 0 2px;font-size:12px;font-weight:700;color:' . $c_dark . ';">File Integrity</p>
-                        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">' . ($fim_enabled ? 'Last check result' : 'FIM disabled') . '</p>
+                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $fim_color . ';border-radius:3px;">
+                    <tr><td style="padding:16px;background:#fff;">
+                        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">File Integrity</p>
+                        <p style="margin:0;font-size:20px;font-weight:800;color:' . $fim_color . ';line-height:1.2;">' . esc_html($fim_label) . '</p>
                     </td></tr>
                 </table>
             </td>
 
             <td style="padding-left:8px;vertical-align:top;width:33%;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="border-top:3px solid ' . $c_blue . ';border-radius:0 0 4px 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
-                    <tr><td style="padding:14px 16px;background:#fff;">
-                        <p style="margin:0 0 4px;font-size:30px;font-weight:800;color:' . $c_blue . ';line-height:1;">' . number_format($total_events) . '</p>
-                        <p style="margin:0 0 2px;font-size:12px;font-weight:700;color:' . $c_dark . ';">Total Events</p>
-                        <p style="margin:0;font-size:11px;color:' . $c_gray . ';">All-time logged</p>
+                       style="border:1px solid ' . $c_border . ';border-top:3px solid ' . $c_blue . ';border-radius:3px;">
+                    <tr><td style="padding:16px;background:#fff;">
+                        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' . $c_gray . ';">Total Events</p>
+                        <p style="margin:0;font-size:28px;font-weight:800;color:' . $c_blue . ';line-height:1;">' . number_format($total_events) . '</p>
                     </td></tr>
                 </table>
             </td>
