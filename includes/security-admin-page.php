@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Format a stored MySQL datetime as M/D/YY h:mm AM/PM (Central time).
+ * Format a stored UTC MySQL datetime as M/D/YY h:mm AM/PM in WP's configured timezone.
  */
 function sl_security_format_datetime($mysql_datetime) {
     if (empty($mysql_datetime) || 'Unknown' === $mysql_datetime) {
@@ -13,12 +13,14 @@ function sl_security_format_datetime($mysql_datetime) {
     }
 
     try {
-        // Parse and display in WP's configured timezone.
-        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, wp_timezone());
+        // Stored as UTC — parse in UTC, then convert to WP's configured timezone for display.
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, new DateTimeZone('UTC'));
 
         if (false === $dt) {
             return esc_html($mysql_datetime);
         }
+
+        $dt->setTimezone(wp_timezone());
 
         return $dt->format('n/j/y g:i A');
     } catch (Exception $e) {

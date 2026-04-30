@@ -88,7 +88,7 @@ function sl_sem_log_event($event_type, $details = []) {
     }
 
     $event = [
-        'timestamp' => current_time('mysql'),
+        'timestamp' => current_time('mysql', true),
         'event_type' => sanitize_key($event_type),
         'method' => sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? 'unknown')),
         'uri' => sl_sem_get_request_uri(),
@@ -157,11 +157,20 @@ function sl_sem_clear_log() {
 
 function sl_sem_count_events_today() {
     $events = sl_sem_get_recent_events(1000);
-    $today = current_time('Y-m-d');
-    $count = 0;
+    $today  = wp_date('Y-m-d'); // local date in WP's timezone
+    $count  = 0;
 
     foreach ($events as $event) {
-        if (!empty($event['timestamp']) && strpos($event['timestamp'], $today) === 0) {
+        if (empty($event['timestamp'])) {
+            continue;
+        }
+        // Parse stored UTC timestamp, convert to local date before comparing.
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $event['timestamp'], new DateTimeZone('UTC'));
+        if (!$dt) {
+            continue;
+        }
+        $dt->setTimezone(wp_timezone());
+        if ($dt->format('Y-m-d') === $today) {
             $count++;
         }
     }
@@ -211,10 +220,12 @@ function sl_sem_get_events_per_day($days = 7) {
         if (empty($event['timestamp'])) {
             continue;
         }
-        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $event['timestamp'], $tz);
+        // Parse stored UTC timestamp, then convert to local timezone for date bucketing.
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $event['timestamp'], new DateTimeZone('UTC'));
         if (!$dt) {
             continue;
         }
+        $dt->setTimezone($tz);
         $date = $dt->format('Y-m-d');
         if (isset($index[$date])) {
             $result[$index[$date]]['count']++;
