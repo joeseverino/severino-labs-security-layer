@@ -1,0 +1,19 @@
+Generating public/private rsa key pair.
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /home/jsevphha/.ssh/id_rsa.
+Your public key has been saved in /home/jsevphha/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:MNIjFZXoT7GqotcD1W1s7StkiVz63wLftyMzw1MB2Ow 
+The key's randomart image is:
++---[RSA 4096]----+
+|      o+.. +     |
+|     o. o . +    |
+|    oo=o + . .   |
+|    .oo+O . E .  |
+|   . . XSo     . |
+|  .   = * .   .  |
+|   o . + o + .   |
+|  o +   o +.O o  |
+|.o . .   o...B.o |
++----[SHA256]-----+

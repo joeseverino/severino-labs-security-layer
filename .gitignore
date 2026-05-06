@@ -44,3 +44,5 @@ id_ed25519*
 !.vscode/settings.json
 !.vscode/stubs/
 !.vscode/stubs/**
+# Local docs, screenshots, writeups
+_docs/
