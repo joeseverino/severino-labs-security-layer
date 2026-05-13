@@ -1,0 +1,43 @@
+name: semgrep
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Monday 04:24 UTC — random-ish minute to dodge the top-of-hour herd.
+    - cron: '24 4 * * 1'
+
+jobs:
+  semgrep:
+    name: scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    permissions:
+      contents: read
+      security-events: write   # required to upload SARIF to the Security tab
+
+    # Dependabot PRs can't access secrets, so skip there to avoid noisy failures.
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Semgrep scan
+        run: |
+          semgrep scan \
+            --sarif --output=semgrep.sarif \
+            --config="p/default" \
+            --config="p/security-audit" \
+            --config="p/php" \
+            --config="p/wordpress" \
+            --exclude=vendor --exclude=_docs --exclude=node_modules
+
+      - name: Upload SARIF to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
