@@ -1,5 +1,7 @@
 # Severino Labs Security Layer
 
+[![ci](https://github.com/joeseverino/severino-labs-security-layer/actions/workflows/ci.yml/badge.svg)](https://github.com/joeseverino/severino-labs-security-layer/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/joeseverino/severino-labs-security-layer/actions/workflows/codeql.yml/badge.svg)](https://github.com/joeseverino/severino-labs-security-layer/actions/workflows/codeql.yml)
 [![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 [![WordPress: 5.8+](https://img.shields.io/badge/wordpress-5.8%2B-21759b.svg)](https://wordpress.org/)
 [![PHP: 7.4+](https://img.shields.io/badge/php-7.4%2B-777bb4.svg)](https://www.php.net/)
