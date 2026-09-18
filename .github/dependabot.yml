@@ -7,3 +7,5 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
